@@ -1,0 +1,10 @@
+[
+    {
+        "type": "Fire",
+        "procedure": "Evacuate the building and call 911 immediately."
+    },
+    {
+        "type": "Medical Emergency",
+        "procedure": "Call 911 and provide clear information about the patient's condition."
+    }
+]
