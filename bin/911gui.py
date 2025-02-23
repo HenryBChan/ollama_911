@@ -1,6 +1,5 @@
 import pygame
 import time
-import random
 import numpy as np
 import pyaudio
 
@@ -28,28 +27,37 @@ CHUNK = 1024
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
 RATE = 44100
+NOISE_THRESHOLD = 1000  # Adjust this based on ambient noise levels
 p = pyaudio.PyAudio()
 stream = p.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK)
+
+# Frequency range for human voice (approximately 85Hz to 255Hz fundamental, with harmonics)
+LOW_FREQ = 85
+HIGH_FREQ = 3000  # Include some harmonics for visualization
 
 # State variables
 recording = False
 backend_processing = False
 processing_start_time = 0
-spectrum = []
-tts_spectrum = []
+spectrum = np.zeros(20, dtype=int)
 
 def get_audio_spectrum():
     data = np.frombuffer(stream.read(CHUNK, exception_on_overflow=False), dtype=np.int16)
+    volume = np.max(np.abs(data))
+    
+    if volume < NOISE_THRESHOLD:
+        return np.zeros(20, dtype=int)  # Flat spectrum if below noise threshold
+    
     fft_data = np.abs(np.fft.rfft(data))
+    freqs = np.fft.rfftfreq(len(data), 1.0 / RATE)
+    
+    # Focus on the human speech range
+    mask = (freqs >= LOW_FREQ) & (freqs <= HIGH_FREQ)
+    fft_data = fft_data[mask]
+    
     fft_data = np.log1p(fft_data)  # Log scaling for better visualization
-    if fft_data.max() > 0:
-        fft_data = np.interp(fft_data[:20], (fft_data.min(), fft_data.max()), (1, 50))
-    else:
-        fft_data = np.zeros(20)
+    fft_data = np.interp(fft_data[:20], (0, np.max(fft_data)), (1, 50))
     return fft_data.astype(int)
-
-# def smooth_spectrum(previous_spectrum, new_spectrum, smoothing_factor=0.7):
-#     return (smoothing_factor * np.array(previous_spectrum) + (1 - smoothing_factor) * np.array(new_spectrum)).astype(int)
 
 def draw_spectrum(spectrum, y_offset):
     x = 50
@@ -59,7 +67,7 @@ def draw_spectrum(spectrum, y_offset):
 
 running = True
 while running:
-    screen.fill(WHITE)
+    screen.fill(BLACK)
     
     # Backend processing check
     if backend_processing:
@@ -75,20 +83,10 @@ while running:
     text_surface = font.render(status_text, True, status_color)
     screen.blit(text_surface, (160, 200))
     
-    # Draw recording spectrum
+    # Draw recording spectrum continuously while button is pressed
     if recording:
         spectrum = get_audio_spectrum()
-        # spectrum = smooth_spectrum(spectrum, new_spectrum) if spectrum else new_spectrum
-    # else:
-    #     spectrum = []
     draw_spectrum(spectrum, 150)
-    
-    # # Draw TTS spectrum
-    # if not backend_processing:
-    #     tts_spectrum = get_audio_spectrum() if random.random() > 0.8 else []  # Simulating TTS playback
-    # else:
-    #     tts_spectrum = []
-    # draw_spectrum(tts_spectrum, 250)
     
     # Event handling
     for event in pygame.event.get():
@@ -103,7 +101,7 @@ while running:
             processing_start_time = time.time()
     
     pygame.display.flip()
-    pygame.time.delay(100)
+    pygame.time.delay(10)  # Reduced delay for more real-time responsiveness
 
 stream.stop_stream()
 stream.close()
