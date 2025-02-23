@@ -34,7 +34,7 @@ stream = p.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_
 
 # Frequency range for human voice (approximately 85Hz to 255Hz fundamental, with harmonics)
 LOW_FREQ = 85
-HIGH_FREQ = 8000  # Include some harmonics for visualization
+HIGH_FREQ = 3000  # Include some harmonics for visualization
 
 # State variables
 recording = False
@@ -57,7 +57,7 @@ def get_audio_spectrum():
     fft_data = fft_data[mask]
     
     fft_data = np.log1p(fft_data)  # Log scaling for better visualization
-    fft_data = np.interp(fft_data[:20], (0, np.max(fft_data)), (THRESHOLD_LOW, 50))
+    fft_data = np.interp(fft_data[:20], (0, np.max(fft_data)), (THRESHOLD_LOW, 100))  # Doubled max height
     return fft_data.astype(int)
 
 def draw_spectrum(spectrum, y_offset):
@@ -68,7 +68,7 @@ def draw_spectrum(spectrum, y_offset):
 
 running = True
 while running:
-    screen.fill(BLACK)
+    screen.fill(WHITE)
     
     # Backend processing check
     if backend_processing:

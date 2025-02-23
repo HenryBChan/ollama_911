@@ -49,4 +49,5 @@ Would you like help refining this plan, customizing the RAG pipeline, or expandi
 
 TODO: 
    * fix the tts 
-   * build a pygame frontend user interface.  We want to have button that is enabled when user can click to speak.  The button is a phone handset image.  When user depresses the button and holds the button down, the microphone is recording.  When user releases the button the recording stops.  When user is speaking on the pygame frontend we have a little spectrum visualization of the user speaking.  On the reverse side when the backend places a recording back from a tts engine, there is a seperate spectrum to visualize the speach being sent back to the user.  
+   * 911gui when we are processing spectrum we also want to be recording to .wav file all the audio while user hits speak. 
+ 
