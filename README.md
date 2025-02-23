@@ -44,3 +44,9 @@ Next Steps
    * Integrate NLP Pipelines: Include advanced preprocessing for better user input handling.
    * Deploy: Use Docker or cloud platforms (e.g., AWS, Azure) for production use.
 Would you like help refining this plan, customizing the RAG pipeline, or expanding the emergency procedures?
+
+
+
+TODO: 
+   * fix the tts 
+   * build a pygame frontend user interface.  We want to have button that is enabled when user can click to speak.  The button is a phone handset image.  When user depresses the button and holds the button down, the microphone is recording.  When user releases the button the recording stops.  When user is speaking on the pygame frontend we have a little spectrum visualization of the user speaking.  On the reverse side when the backend places a recording back from a tts engine, there is a seperate spectrum to visualize the speach being sent back to the user.  
