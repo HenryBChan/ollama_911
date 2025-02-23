@@ -2,6 +2,7 @@ import pygame
 import time
 import numpy as np
 import pyaudio
+import wave
 
 # Pygame setup
 pygame.init()
@@ -41,6 +42,7 @@ recording = False
 backend_processing = False
 processing_start_time = 0
 spectrum = np.zeros(20, dtype=int)
+audio_frames = []
 
 def get_audio_spectrum():
     data = np.frombuffer(stream.read(CHUNK, exception_on_overflow=False), dtype=np.int16)
@@ -66,9 +68,17 @@ def draw_spectrum(spectrum, y_offset):
         pygame.draw.rect(screen, GREEN, (x, y_offset - bar, 10, bar))
         x += 15
 
+def save_audio():
+    wf = wave.open("recorded_audio.wav", "wb")
+    wf.setnchannels(CHANNELS)
+    wf.setsampwidth(p.get_sample_size(FORMAT))
+    wf.setframerate(RATE)
+    wf.writeframes(b"".join(audio_frames))
+    wf.close()
+
 running = True
 while running:
-    screen.fill(WHITE)
+    screen.fill(BLACK)
     
     # Backend processing check
     if backend_processing:
@@ -87,6 +97,7 @@ while running:
     # Draw recording spectrum continuously while button is pressed
     if recording:
         spectrum = get_audio_spectrum()
+        audio_frames.append(stream.read(CHUNK, exception_on_overflow=False))
     draw_spectrum(spectrum, 150)
     
     # Event handling
@@ -96,10 +107,12 @@ while running:
         elif event.type == pygame.MOUSEBUTTONDOWN and button_rect.collidepoint(event.pos):
             if not backend_processing:
                 recording = True
+                audio_frames = []  # Reset audio frames for new recording
         elif event.type == pygame.MOUSEBUTTONUP and recording:
             recording = False
             backend_processing = True
             processing_start_time = time.time()
+            save_audio()
     
     pygame.display.flip()
     pygame.time.delay(10)  # Reduced delay for more real-time responsiveness
