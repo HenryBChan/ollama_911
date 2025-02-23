@@ -28,12 +28,13 @@ FORMAT = pyaudio.paInt16
 CHANNELS = 1
 RATE = 44100
 NOISE_THRESHOLD = 1000  # Adjust this based on ambient noise levels
+THRESHOLD_LOW = 10  # Offset so spectrum bottom can be moved up
 p = pyaudio.PyAudio()
 stream = p.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK)
 
 # Frequency range for human voice (approximately 85Hz to 255Hz fundamental, with harmonics)
 LOW_FREQ = 85
-HIGH_FREQ = 3000  # Include some harmonics for visualization
+HIGH_FREQ = 8000  # Include some harmonics for visualization
 
 # State variables
 recording = False
@@ -46,7 +47,7 @@ def get_audio_spectrum():
     volume = np.max(np.abs(data))
     
     if volume < NOISE_THRESHOLD:
-        return np.zeros(20, dtype=int)  # Flat spectrum if below noise threshold
+        return np.full(20, THRESHOLD_LOW, dtype=int)  # Flat spectrum with offset if below noise threshold
     
     fft_data = np.abs(np.fft.rfft(data))
     freqs = np.fft.rfftfreq(len(data), 1.0 / RATE)
@@ -56,7 +57,7 @@ def get_audio_spectrum():
     fft_data = fft_data[mask]
     
     fft_data = np.log1p(fft_data)  # Log scaling for better visualization
-    fft_data = np.interp(fft_data[:20], (0, np.max(fft_data)), (1, 50))
+    fft_data = np.interp(fft_data[:20], (0, np.max(fft_data)), (THRESHOLD_LOW, 50))
     return fft_data.astype(int)
 
 def draw_spectrum(spectrum, y_offset):
