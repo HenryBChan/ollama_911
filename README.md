@@ -27,7 +27,8 @@ SETUP
    pip install -U langchain-community
    pip install transformers
    pip install tensorflow
-
+   pip install scipy
+   
 Run the Application:
    Using tinyllama directly use : ollama run tinyllama
    Start the Flask server:
