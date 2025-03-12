@@ -3,6 +3,7 @@ import time
 import numpy as np
 import pyaudio
 import wave
+import threading
 
 # Pygame setup
 pygame.init()
@@ -24,13 +25,15 @@ RED = (255, 0, 0)
 font = pygame.font.Font(None, 36)
 
 # Audio setup
-CHUNK = 1024
+CHUNK = 4096  # Increased buffer for smoother recording
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
 RATE = 44100
 NOISE_THRESHOLD = 1000  # Adjust this based on ambient noise levels
 THRESHOLD_LOW = 10  # Offset so spectrum bottom can be moved up
 p = pyaudio.PyAudio()
+
+# Open a global stream for spectrum analysis
 stream = p.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK)
 
 # Frequency range for human voice (approximately 85Hz to 255Hz fundamental, with harmonics)
@@ -43,8 +46,13 @@ backend_processing = False
 processing_start_time = 0
 spectrum = np.zeros(20, dtype=int)
 audio_frames = []
+recording_thread = None
+
 
 def get_audio_spectrum():
+    if not recording:
+        return np.full(20, THRESHOLD_LOW, dtype=int)
+    
     data = np.frombuffer(stream.read(CHUNK, exception_on_overflow=False), dtype=np.int16)
     volume = np.max(np.abs(data))
     
@@ -62,19 +70,34 @@ def get_audio_spectrum():
     fft_data = np.interp(fft_data[:20], (0, np.max(fft_data)), (THRESHOLD_LOW, 100))  # Doubled max height
     return fft_data.astype(int)
 
+
 def draw_spectrum(spectrum, y_offset):
     x = 50
     for bar in spectrum:
         pygame.draw.rect(screen, GREEN, (x, y_offset - bar, 10, bar))
         x += 15
 
+
 def save_audio():
+    if not audio_frames:
+        return
     wf = wave.open("recorded_audio.wav", "wb")
     wf.setnchannels(CHANNELS)
     wf.setsampwidth(p.get_sample_size(FORMAT))
     wf.setframerate(RATE)
     wf.writeframes(b"".join(audio_frames))
     wf.close()
+
+
+def record_audio():
+    global recording, audio_frames
+    local_stream = p.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK)
+    while recording:
+        data = local_stream.read(CHUNK, exception_on_overflow=False)
+        audio_frames.append(data)
+    local_stream.stop_stream()
+    local_stream.close()
+
 
 running = True
 while running:
@@ -97,7 +120,6 @@ while running:
     # Draw recording spectrum continuously while button is pressed
     if recording:
         spectrum = get_audio_spectrum()
-        audio_frames.append(stream.read(CHUNK, exception_on_overflow=False))
     draw_spectrum(spectrum, 150)
     
     # Event handling
@@ -108,15 +130,20 @@ while running:
             if not backend_processing:
                 recording = True
                 audio_frames = []  # Reset audio frames for new recording
+                recording_thread = threading.Thread(target=record_audio, daemon=True)
+                recording_thread.start()
         elif event.type == pygame.MOUSEBUTTONUP and recording:
             recording = False
+            if recording_thread:
+                recording_thread.join()
             backend_processing = True
             processing_start_time = time.time()
             save_audio()
     
     pygame.display.flip()
-    pygame.time.delay(10)  # Reduced delay for more real-time responsiveness
+    pygame.time.delay(5)  # Reduced delay for smoother real-time responsiveness
 
+# Close the global spectrum stream
 stream.stop_stream()
 stream.close()
 p.terminate()
