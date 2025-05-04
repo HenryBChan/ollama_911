@@ -1,47 +1,50 @@
 import requests
+import json
 
-# Simple state tracker
 conversation_state = {
     "name": None,
     "location": None,
     "emergency": None
 }
 
-def generate_prompt(conversation, model="tinyllama"):
+def query_tinyllama(user_message, current_state):
+    prompt = f"""
+Extract the user's name, location, and emergency from this message.
+
+Respond ONLY with valid JSON like:
+{{"name": "...", "location": "...", "emergency": "..."}}
+
+If any value is missing, set it to null.
+
+User message: "{user_message}"
+"""
+
     response = requests.post(
         "http://localhost:11434/api/generate",
         json={
-            "model": model,
-            "prompt": conversation,
+            "model": "tinyllama",
+            "prompt": prompt.strip(),
             "stream": False
         }
     )
-    return response.json()["response"]
 
-def extract_info(response):
-    # Very basic rules-based extraction for now
-    info = {
-        "name": None,
-        "location": None,
-        "emergency": None
-    }
-    response_lower = response.lower()
+    raw_output = response.json()["response"].strip()
 
-    if any(word in response_lower for word in ["my name is", "i am", "this is"]) and conversation_state["name"] is None:
-        tokens = response.split()
-        try:
-            name_index = tokens.index("name") + 2  # assumes "my name is"
-            info["name"] = tokens[name_index]
-        except:
-            pass
+    try:
+        json_start = raw_output.find('{')
+        json_end = raw_output.rfind('}') + 1
+        json_str = raw_output[json_start:json_end]
+        parsed = json.loads(json_str)
+        return {
+            "name": parsed.get("name", current_state["name"]),
+            "location": parsed.get("location", current_state["location"]),
+            "emergency": parsed.get("emergency", current_state["emergency"])
+        }
+    except Exception as e:
+        print("⚠️ Could not parse LLM response:", raw_output)
+        # Return the current state unchanged
+        return current_state.copy()
 
-    if any(loc in response_lower for loc in ["i'm at", "i am at", "location is", "address is"]) and conversation_state["location"] is None:
-        info["location"] = response
-
-    if any(word in response_lower for word in ["help", "emergency", "fire", "hurt", "accident"]) and conversation_state["emergency"] is None:
-        info["emergency"] = response
-
-    return info
 
 def next_question():
     if not conversation_state["name"]:
@@ -53,16 +56,16 @@ def next_question():
     else:
         return "Thank you. Help is on the way."
 
-# Conversation loop
+# Main loop
 print("911, how can I help you?")
 
 while not all(conversation_state.values()):
     user_input = input("You: ")
-    info = extract_info(user_input)
-    
+    extracted = query_tinyllama(user_input, conversation_state)
+
     for key in conversation_state:
-        if not conversation_state[key] and info[key]:
-            conversation_state[key] = info[key]
-    
+        if not conversation_state[key] and extracted[key]:
+            conversation_state[key] = extracted[key]
+
     prompt = next_question()
     print(f"AI: {prompt}")
