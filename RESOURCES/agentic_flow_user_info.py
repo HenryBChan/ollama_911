@@ -15,9 +15,11 @@ Extract the user's name, location, and emergency description from the message.
 - Emergency should be a short description of what help is needed (e.g., "broken leg", "house fire", "car accident").
 - Only return valid JSON in the following format:
   {{"name": ..., "location": ..., "emergency": ...}}
-- Use null for any missing fields.
+- Only include values that were clearly and explicitly stated by the user.
+- If any value is NOT directly stated, set it to null.
 - Do NOT guess or default to placeholders like "User", "Not Provided", "None", "Anonymous", or "Unknown".
 - Do NOT explain or output code. Only return a JSON object.
+- DO NOT guess or infer names like "user", "drowning user", or similar.
 
 User message: "{user_message}"
 """
