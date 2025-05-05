@@ -1,5 +1,6 @@
 import requests
 import json
+import re
 
 conversation_state = {
     "name": None,
@@ -9,12 +10,14 @@ conversation_state = {
 
 def query_tinyllama(user_message, current_state):
     prompt = f"""
-Extract the user's name, location, and emergency from this message.
+Extract the user's name, location, and emergency description from the message.
 
-Respond ONLY with valid JSON like:
-{{"name": "...", "location": "...", "emergency": "..."}}
-
-If any value is missing, set it to null.
+- Emergency should be a short description of what help is needed (e.g., "broken leg", "house fire", "car accident").
+- Only return valid JSON in the following format:
+  {{"name": ..., "location": ..., "emergency": ...}}
+- Use null for any missing fields.
+- Do NOT guess or default to placeholders like "User", "Not Provided", "None", "Anonymous", or "Unknown".
+- Do NOT explain or output code. Only return a JSON object.
 
 User message: "{user_message}"
 """
@@ -22,18 +25,20 @@ User message: "{user_message}"
     response = requests.post(
         "http://localhost:11434/api/generate",
         json={
-            "model": "tinyllama",
+            "model": "mistral",
             "prompt": prompt.strip(),
             "stream": False
         }
     )
 
     raw_output = response.json()["response"].strip()
+    print("🧠 LLM raw output:", raw_output)  # helpful debug{}
 
     try:
-        json_start = raw_output.find('{')
-        json_end = raw_output.rfind('}') + 1
-        json_str = raw_output[json_start:json_end]
+        match = re.search(r'\{.*?\}', raw_output, re.DOTALL)
+        if not match:
+            raise ValueError("No JSON object found in LLM response")
+        json_str = match.group(0)
         parsed = json.loads(json_str)
         return {
             "name": parsed.get("name", current_state["name"]),
@@ -46,6 +51,25 @@ User message: "{user_message}"
         return current_state.copy()
 
 
+
+def format_emergency(emergency):
+    if not emergency or emergency.lower() in ["yes", "no", "true", "false"]:
+        return "unspecified emergency"
+
+    # Basic cleanup
+    emergency_clean = re.sub(r"\b(my|i have|i’m|i am|the)\b", "", emergency, flags=re.IGNORECASE).strip()
+    emergency_clean = emergency_clean[0].lower() + emergency_clean[1:]
+
+    if "fire" in emergency_clean:
+        if "house" in emergency_clean:
+            return "house fire emergency"
+        return f"{emergency_clean} emergency"
+    elif any(word in emergency_clean for word in ["broken", "neck", "injury", "hurt", "bleeding", "cut", "pain"]):
+        return f"{emergency_clean} emergency"
+    else:
+        return f"{emergency_clean} emergency"
+
+
 def next_question():
     if not conversation_state["name"]:
         return "Can I have your name, please?"
@@ -54,7 +78,11 @@ def next_question():
     elif not conversation_state["emergency"]:
         return "What is the emergency?"
     else:
-        return "Thank you. Help is on the way."
+        name = conversation_state["name"] or "unknown"
+        location = conversation_state["location"] or "unspecified location"
+        emergency = format_emergency(conversation_state["emergency"])
+        return f"{name}, we received your {emergency} at {location}. Help is on the way."
+
 
 # Main loop
 print("911, how can I help you?")
