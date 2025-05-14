@@ -55,7 +55,7 @@ User message: "{user_message}"
 
 
 def format_emergency(emergency):
-    if not emergency or emergency.lower() in ["yes", "no", "true", "false"]:
+    if not emergency or emergency.lower() in ["yes", "no", "true", "false", "help", "emergency"]:
         return "unspecified emergency"
 
     # Basic cleanup
@@ -120,6 +120,11 @@ def is_vague_location(loc):
     ]
     return any(term in loc.lower() for term in vague_terms)
 
+def is_vague_emergency(description):
+    if not description:
+        return True
+    vague_terms = ["help", "emergency", "problem", "issue", "situation"]
+    return description.strip().lower() in vague_terms
 
 # Main loop
 print("911, how can I help you?")
@@ -129,14 +134,31 @@ while not all(conversation_state.values()):
     extracted = query_tinyllama(user_input, conversation_state)
 
     for key in conversation_state:
-        if not conversation_state[key] and extracted[key]:
-            conversation_state[key] = extracted[key]
+        new_value = extracted.get(key)
+
+        if key == "emergency":
+            if (not conversation_state[key]) or is_vague_emergency(conversation_state[key]):
+                if new_value and not is_vague_emergency(new_value):
+                    conversation_state[key] = new_value
+
+        elif key == "location":
+            if (not conversation_state[key]) or is_vague_location(conversation_state[key]):
+                if new_value and not is_vague_location(new_value):
+                    conversation_state[key] = new_value
+
+        elif not conversation_state[key] and new_value:
+            conversation_state[key] = new_value
 
     # Re-check location vagueness
     if conversation_state["location"] and is_vague_location(conversation_state["location"]):
         print("AI: Can you be more specific about your location? Any nearby landmarks or street names?")
         continue
-    
+
+    if conversation_state["emergency"] and is_vague_emergency(conversation_state["emergency"]):
+        print (f'DEBUG {conversation_state["emergency"]}')
+        print("AI: Can you briefly describe what the emergency is?")
+        continue
+
     prompt = next_question()
     print(f"AI: {prompt}")
 
