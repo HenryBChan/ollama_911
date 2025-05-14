@@ -85,6 +85,41 @@ def next_question():
         emergency = format_emergency(conversation_state["emergency"])
         return f"{name}, we received your {emergency} at {location}. Help is on the way."
 
+def dispatch_services(state):
+    """
+    Determine which emergency services to dispatch based on the emergency description.
+    Returns a list of services like: ['EMS', 'Fire Department']
+    """
+    services = set()
+    emergency = (state.get("emergency") or "").lower()
+
+    # Dispatch logic based on keywords
+    if any(term in emergency for term in ["broken", "bleeding", "hurt", "injury", "unconscious", "pain", "neck", "heart attack", "stroke"]):
+        services.add("EMS")
+
+    if any(term in emergency for term in ["fire", "smoke", "burning", "explosion"]):
+        services.add("Fire Department")
+
+    if any(term in emergency for term in ["shooting", "robbery", "assault", "theft", "violence", "gun", "knife", "threat"]):
+        services.add("Police")
+
+    if any(term in emergency for term in ["chemical", "hazmat", "toxic", "radiation", "spill", "gas leak"]):
+        services.add("HazMat Team")
+
+    if not services:
+        services.add("General Emergency Dispatcher")  # Catch-all fallback
+
+    return list(services)
+
+def is_vague_location(loc):
+    if not loc:
+        return True
+    vague_terms = [
+        "somewhere", "around", "maybe", "not sure", "i don't know", 
+        "don't know", "unknown", "lost", "nearby", "far away", "an island"
+    ]
+    return any(term in loc.lower() for term in vague_terms)
+
 
 # Main loop
 print("911, how can I help you?")
@@ -97,5 +132,18 @@ while not all(conversation_state.values()):
         if not conversation_state[key] and extracted[key]:
             conversation_state[key] = extracted[key]
 
+    # Re-check location vagueness
+    if conversation_state["location"] and is_vague_location(conversation_state["location"]):
+        print("AI: Can you be more specific about your location? Any nearby landmarks or street names?")
+        continue
+    
     prompt = next_question()
     print(f"AI: {prompt}")
+
+#Simulate which responders are sent based on emergency type.
+#Store the record (e.g., to a file or mock database).
+#dispatch_services(conversation_state)
+if all(conversation_state.values()):
+    services = dispatch_services(conversation_state)
+    print(f"🚨 Dispatching: {', '.join(services)}")
+
