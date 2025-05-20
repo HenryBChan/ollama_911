@@ -13,70 +13,63 @@ for voice in voices:
         engine.setProperty('voice', voice.id)
         break
 
+# Global talking flag
+talking = False
+
+# Speak function runs in a thread
+def speak(text):
+    global talking
+    talking = True
+    engine.say(text)
+    engine.runAndWait()
+    talking = False
+
 # Initialize pygame
 pygame.init()
 screen = pygame.display.set_mode((400, 400))
 pygame.display.set_caption("Talking Avatar")
 
-# Load images
+# Load and resize images
 mouth_closed_img = pygame.image.load("images/911_women_closed.png")
 mouth_open_img = pygame.image.load("images/911_women_open.png")
-
-# Resize images to fit the window
 mouth_closed_img = pygame.transform.scale(mouth_closed_img, (300, 300))
 mouth_open_img = pygame.transform.scale(mouth_open_img, (300, 300))
 
-# Talking state
-talking = False
+# Variables for mouth animation
+current_img = mouth_closed_img
+last_switch_time = 0
+mouth_open = False
 
-# Function to animate mouth
-def animate_mouth():
-    global talking
-    clock = pygame.time.Clock()
-    current_img = mouth_closed_img
-    while talking:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                return
-
-        # Toggle image to simulate talking
-        current_img = mouth_open_img if current_img == mouth_closed_img else mouth_closed_img
-        screen.fill((255, 255, 255))
-        screen.blit(current_img, (50, 50))
-        pygame.display.update()
-        time.sleep(0.25)  # Adjust speed here
-        clock.tick(60)
-
-    # When done talking, show mouth closed
-    screen.fill((255, 255, 255))
-    screen.blit(mouth_closed_img, (50, 50))
-    pygame.display.update()
-
-# Function to speak and animate
-def speak(text):
-    global talking
-    talking = True
-    animation_thread = threading.Thread(target=animate_mouth)
-    animation_thread.start()
-    engine.say(text)
-    engine.runAndWait()
-    talking = False
-    animation_thread.join()
+# Clock
+clock = pygame.time.Clock()
 
 # Main loop
 running = True
 while running:
-    screen.fill((255, 255, 255))
-    screen.blit(mouth_closed_img, (50, 50))
-    pygame.display.update()
+    current_time = time.time()
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
 
         elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_SPACE:  # Press SPACE to speak
-                threading.Thread(target=speak, args=("Hello, I'm speaking to you right now!",)).start()
+            if event.key == pygame.K_SPACE:
+                if not talking:
+                    threading.Thread(target=speak, args=("Hello, I'm speaking to you right now!",)).start()
+
+    # Animate mouth if talking
+    if talking:
+        if current_time - last_switch_time > 0.25:  # Switch every 250 ms
+            mouth_open = not mouth_open
+            last_switch_time = current_time
+    else:
+        mouth_open = False  # Keep it closed when not talking
+
+    current_img = mouth_open_img if mouth_open else mouth_closed_img
+
+    screen.fill((255, 255, 255))
+    screen.blit(current_img, (50, 50))
+    pygame.display.update()
+    clock.tick(60)
 
 pygame.quit()
