@@ -1,2 +1,3 @@
 bin/*.txt
 *.wav
+microphone_capture.txt
