@@ -5,8 +5,17 @@ import numpy as np
 import pyaudio
 import wave
 import threading
+import pyttsx3
 
+# Initialize pyttsx3 TTS engine
+engine = pyttsx3.init()
 
+# Try to select a female voice
+voices = engine.getProperty('voices')
+for voice in voices:
+    if "female" in voice.name.lower() or "zira" in voice.name.lower() or "samantha" in voice.name.lower():
+        engine.setProperty('voice', voice.id)
+        break
 
 # Pygame setup
 pygame.init()
@@ -105,11 +114,27 @@ def record_audio():
 mouth_closed_img = pygame.image.load("images/911_women_closed.png")
 mouth_open_img = pygame.image.load("images/911_women_open.png")
 mouth_closed_img = pygame.transform.scale(mouth_closed_img, (100, 100))
-mouth_open_img = pygame.transform.scale(mouth_open_img, (300, 300))
+mouth_open_img = pygame.transform.scale(mouth_open_img, (100, 100))
 
+# Variables for mouth animation
+current_img = mouth_closed_img
+last_switch_time = 0
+mouth_open = False
+
+# Global talking flag
+talking = False
+
+# Speak function runs in a thread
+def speak(text):
+    global talking
+    talking = True
+    engine.say(text)
+    engine.runAndWait()
+    talking = False
 
 running = True
 while running:
+    current_time = time.time()
     screen.fill(BLACK)
     
     # Backend processing check
@@ -148,13 +173,23 @@ while running:
             backend_processing = True
             processing_start_time = time.time()
             save_audio()
-            
-    current_img = mouth_closed_img 
+
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
+                if not talking:
+                    threading.Thread(target=speak, args=("Hello, I'm speaking to you right now!",)).start()
+
+    if talking:
+        if current_time - last_switch_time > 0.25:  # Switch every 250 ms
+            mouth_open = not mouth_open
+            last_switch_time = current_time
+    else:
+        mouth_open = False  # Keep it closed when not talking
+
+    current_img = mouth_open_img if mouth_open else mouth_closed_img 
     screen.blit(current_img, (50, 250))
     pygame.display.flip()
     pygame.time.delay(5)  # Reduced delay for smoother real-time responsiveness
-
-
 
 # Close the global spectrum stream
 stream.stop_stream()
