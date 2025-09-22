@@ -6,6 +6,19 @@ import pyaudio
 import wave
 import threading
 import pyttsx3
+import os
+import shutil
+
+out_dir = "out"
+
+# If "out" exists, delete it
+if os.path.exists(out_dir):
+    shutil.rmtree(out_dir)
+
+# Recreate a fresh "out" directory
+os.makedirs(out_dir)
+
+print(f'Directory "{out_dir}" has been reset.')
 
 # Initialize pyttsx3 TTS engine
 engine = pyttsx3.init()
@@ -91,9 +104,10 @@ def draw_spectrum(spectrum, y_offset):
 
 
 def save_audio():
+    global out_dir
     if not audio_frames:
         return
-    wf = wave.open("recorded_audio.wav", "wb")
+    wf = wave.open(f"{out_dir}/recorded_audio.wav", "wb")
     wf.setnchannels(CHANNELS)
     wf.setsampwidth(p.get_sample_size(FORMAT))
     wf.setframerate(RATE)
