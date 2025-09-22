@@ -188,10 +188,15 @@ while running:
             processing_start_time = time.time()
             save_audio()
 
-        elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_SPACE:
-                if not talking:
-                    threading.Thread(target=speak, args=("Hello, I'm speaking to you right now!",)).start()
+    if not talking:
+        operater_voice_txt = None  # default if file not found
+        operater_voice_txt_file = f"{out_dir}/operater_voice.txt"
+        if os.path.exists(operater_voice_txt_file):
+            with open(operater_voice_txt_file, "r", encoding="utf-8") as f:
+                operater_voice_txt = f.read()
+            os.remove(operater_voice_txt_file)  # delete after reading
+            # print("operater_voice.txt was read and deleted.")
+            threading.Thread(target=speak, args=(operater_voice_txt,)).start()
 
     if talking:
         if current_time - last_switch_time > 0.25:  # Switch every 250 ms
