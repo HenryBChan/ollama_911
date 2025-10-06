@@ -146,72 +146,77 @@ def speak(text):
     engine.runAndWait()
     talking = False
 
-running = True
-while running:
-    current_time = time.time()
-    screen.fill(BLACK)
-    
-    # Backend processing check
-    if backend_processing:
-        if time.time() - processing_start_time > 2:
-            backend_processing = False
-    
-    # Draw button
-    screen.blit(button_image, button_rect.topleft)
-    
-    # Draw status text
-    status_text = "No Speak" if backend_processing else "Speak Now"
-    status_color = RED if backend_processing else GREEN
-    text_surface = font.render(status_text, True, status_color)
-    screen.blit(text_surface, (160, 200))
-    
-    # Draw recording spectrum continuously while button is pressed
-    if recording:
-        spectrum = get_audio_spectrum()
-    draw_spectrum(spectrum, 150)
-    
-    # Event handling
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        elif event.type == pygame.MOUSEBUTTONDOWN and button_rect.collidepoint(event.pos):
-            if not backend_processing:
-                recording = True
-                audio_frames = []  # Reset audio frames for new recording
-                recording_thread = threading.Thread(target=record_audio, daemon=True)
-                recording_thread.start()
-        elif event.type == pygame.MOUSEBUTTONUP and recording:
-            recording = False
-            if recording_thread:
-                recording_thread.join()
-            backend_processing = True
-            processing_start_time = time.time()
-            save_audio()
+def gui_main():
+    global backend_processing, recording, spectrum
+    running = True
+    while running:
+        current_time = time.time()
+        screen.fill(BLACK)
+        
+        # Backend processing check
+        if backend_processing:
+            if time.time() - processing_start_time > 2:
+                backend_processing = False
+        
+        # Draw button
+        screen.blit(button_image, button_rect.topleft)
+        
+        # Draw status text
+        status_text = "No Speak" if backend_processing else "Speak Now"
+        status_color = RED if backend_processing else GREEN
+        text_surface = font.render(status_text, True, status_color)
+        screen.blit(text_surface, (160, 200))
+        
+        # Draw recording spectrum continuously while button is pressed
+        if recording:
+            spectrum = get_audio_spectrum()
+        draw_spectrum(spectrum, 150)
+        
+        # Event handling
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.MOUSEBUTTONDOWN and button_rect.collidepoint(event.pos):
+                if not backend_processing:
+                    recording = True
+                    audio_frames = []  # Reset audio frames for new recording
+                    recording_thread = threading.Thread(target=record_audio, daemon=True)
+                    recording_thread.start()
+            elif event.type == pygame.MOUSEBUTTONUP and recording:
+                recording = False
+                if recording_thread:
+                    recording_thread.join()
+                backend_processing = True
+                processing_start_time = time.time()
+                save_audio()
 
-    if not talking:
-        operater_voice_txt = None  # default if file not found
-        operater_voice_txt_file = f"{out_dir}/operater_voice.txt"
-        if os.path.exists(operater_voice_txt_file):
-            with open(operater_voice_txt_file, "r", encoding="utf-8") as f:
-                operater_voice_txt = f.read()
-            os.remove(operater_voice_txt_file)  # delete after reading
-            # print("operater_voice.txt was read and deleted.")
-            threading.Thread(target=speak, args=(operater_voice_txt,)).start()
+        if not talking:
+            operater_voice_txt = None  # default if file not found
+            operater_voice_txt_file = f"{out_dir}/operater_voice.txt"
+            if os.path.exists(operater_voice_txt_file):
+                with open(operater_voice_txt_file, "r", encoding="utf-8") as f:
+                    operater_voice_txt = f.read()
+                os.remove(operater_voice_txt_file)  # delete after reading
+                # print("operater_voice.txt was read and deleted.")
+                threading.Thread(target=speak, args=(operater_voice_txt,)).start()
 
-    if talking:
-        if current_time - last_switch_time > 0.25:  # Switch every 250 ms
-            mouth_open = not mouth_open
-            last_switch_time = current_time
-    else:
-        mouth_open = False  # Keep it closed when not talking
+        if talking:
+            if current_time - last_switch_time > 0.25:  # Switch every 250 ms
+                mouth_open = not mouth_open
+                last_switch_time = current_time
+        else:
+            mouth_open = False  # Keep it closed when not talking
 
-    current_img = mouth_open_img if mouth_open else mouth_closed_img 
-    screen.blit(current_img, (50, 250))
-    pygame.display.flip()
-    pygame.time.delay(5)  # Reduced delay for smoother real-time responsiveness
+        current_img = mouth_open_img if mouth_open else mouth_closed_img 
+        screen.blit(current_img, (50, 250))
+        pygame.display.flip()
+        pygame.time.delay(5)  # Reduced delay for smoother real-time responsiveness
 
-# Close the global spectrum stream
-stream.stop_stream()
-stream.close()
-p.terminate()
-pygame.quit()
+if __name__ == "__main__":
+    gui_main()
+
+    # Close the global spectrum stream
+    stream.stop_stream()
+    stream.close()
+    p.terminate()
+    pygame.quit()
