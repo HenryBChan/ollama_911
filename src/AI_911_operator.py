@@ -2,6 +2,9 @@ import whisper
 import os
 import time
 import multiprocessing
+import ollama
+import pyttsx3
+
 audio_path = "out/recorded_audio.wav"
 
 # Load Whisper model (choose"tiny", "base", "small", "medium", or "large")
@@ -30,11 +33,27 @@ def microphone_transcribe():
     #     f.write(f"send:{transcribed_text}\n")
     #     f.flush()
     # time.sleep(0.5)
+    return transcribed_text
+
+# Process text with TinyLlama (Ollama)
+def process_text_with_tinyllama(text):
+    print("Processing with TinyLlama...")
+    response = ollama.chat(model="tinyllama", messages=[{"role": "user", "content": text}])
+    return response["message"]["content"]
+
+# Text-to-speech
+def text_to_speech(text, tts_engine):
+    print(f"TinyLlama Response: {text}")
+    tts_engine.say(text)
+    tts_engine.runAndWait()
 
 out_dir = "out"
 wav_path = os.path.join(out_dir, "recorded_audio.wav")
 
 def operator_main():
+
+    # Initialize text to speech engine
+    tts_engine = pyttsx3.init()
     print(f"Waiting for {wav_path} to be created...")
 
     # Wait for the file to appear
@@ -46,7 +65,9 @@ def operator_main():
     while True:
         current_size = os.path.getsize(wav_path)
         if current_size != prev_size:
-            microphone_transcribe()
+            text = microphone_transcribe()
+            response_text = process_text_with_tinyllama(text)
+            text_to_speech(response_text, tts_engine)
         prev_size = current_size
         time.sleep(0.5)
 

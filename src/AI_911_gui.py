@@ -9,17 +9,6 @@ import pyttsx3
 import os
 import shutil
 
-out_dir = "out"
-
-# If "out" exists, delete it
-if os.path.exists(out_dir):
-    shutil.rmtree(out_dir)
-
-# Recreate a fresh "out" directory
-os.makedirs(out_dir)
-
-print(f'Directory "{out_dir}" has been reset.')
-
 # Initialize pyttsx3 TTS engine
 engine = pyttsx3.init()
 
@@ -95,8 +84,7 @@ def draw_spectrum(spectrum, y_offset, screen):
         x += 15
 
 
-def save_audio():
-    global out_dir
+def save_audio(out_dir):
     if not audio_frames:
         return
     wf = wave.open(f"{out_dir}/recorded_audio.wav", "wb")
@@ -140,6 +128,17 @@ def speak(text):
 
 def gui_main():
     global backend_processing, recording, spectrum
+
+    out_dir = "out"
+
+    # If "out" exists, delete it
+    if os.path.exists(out_dir):
+        shutil.rmtree(out_dir)
+
+    # Recreate a fresh "out" directory
+    os.makedirs(out_dir)
+
+    print(f'Directory "{out_dir}" has been reset.')
 
     # Pygame setup
     pygame.init()
@@ -189,7 +188,7 @@ def gui_main():
                     recording_thread.join()
                 backend_processing = True
                 processing_start_time = time.time()
-                save_audio()
+                save_audio(out_dir)
 
         if not talking:
             operator_voice_txt = None  # default if file not found
