@@ -211,12 +211,13 @@ def gui_main():
         screen.blit(current_img, (50, 250))
         pygame.display.flip()
         pygame.time.delay(5)  # Reduced delay for smoother real-time responsiveness
-
-if __name__ == "__main__":
-    gui_main()
-
+    
     # Close the global spectrum stream
     stream.stop_stream()
     stream.close()
     p.terminate()
     pygame.quit()
+
+if __name__ == "__main__":
+    gui_main()
+

@@ -1,7 +1,7 @@
 import whisper
 import os
 import time
-
+import multiprocessing
 audio_path = "out/recorded_audio.wav"
 
 # Load Whisper model (choose"tiny", "base", "small", "medium", or "large")
@@ -35,7 +35,7 @@ out_dir = "out"
 wav_path = os.path.join(out_dir, "recorded_audio.wav")
 
 
-def operater_main():
+def operator_main():
     print("hello")
     print(f"Waiting for {wav_path} to be created...")
 
@@ -53,4 +53,5 @@ def operater_main():
         time.sleep(0.5)
 
 if __name__ == "__main__":
-    operater_main()
+    operator_main()
+
