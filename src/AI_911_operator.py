@@ -34,9 +34,7 @@ def microphone_transcribe():
 out_dir = "out"
 wav_path = os.path.join(out_dir, "recorded_audio.wav")
 
-
 def operator_main():
-    print("hello")
     print(f"Waiting for {wav_path} to be created...")
 
     # Wait for the file to appear

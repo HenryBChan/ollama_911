@@ -1,11 +1,11 @@
 import multiprocessing
 
-from src import AI_911_operator
-from src import AI_911_gui
-
-print ("hello world ")
-
 def main():
+    from src import AI_911_operator
+    from src import AI_911_gui
+
+    print ("main: start")
+
     p1 = multiprocessing.Process(target=AI_911_gui.gui_main)
     p2 = multiprocessing.Process(target=AI_911_operator.operator_main)
 
