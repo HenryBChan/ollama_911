@@ -30,11 +30,6 @@ for voice in voices:
         engine.setProperty('voice', voice.id)
         break
 
-# Pygame setup
-pygame.init()
-screen = pygame.display.set_mode((400, 400))
-pygame.display.set_caption("Voice UI")
-
 # Load button image
 button_image = pygame.image.load("images/phone_button.jpg")
 button_image = pygame.transform.scale(button_image, (100, 100))
@@ -45,9 +40,6 @@ WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 GREEN = (0, 255, 0)
 RED = (255, 0, 0)
-
-# Fonts
-font = pygame.font.Font(None, 36)
 
 # Audio setup
 CHUNK = 4096  # Increased buffer for smoother recording
@@ -96,7 +88,7 @@ def get_audio_spectrum():
     return fft_data.astype(int)
 
 
-def draw_spectrum(spectrum, y_offset):
+def draw_spectrum(spectrum, y_offset, screen):
     x = 50
     for bar in spectrum:
         pygame.draw.rect(screen, GREEN, (x, y_offset - bar, 10, bar))
@@ -148,6 +140,15 @@ def speak(text):
 
 def gui_main():
     global backend_processing, recording, spectrum
+
+    # Pygame setup
+    pygame.init()
+    screen = pygame.display.set_mode((400, 400))
+    pygame.display.set_caption("Voice UI")
+
+    # Fonts
+    font = pygame.font.Font(None, 36)
+
     running = True
     while running:
         current_time = time.time()
@@ -170,7 +171,7 @@ def gui_main():
         # Draw recording spectrum continuously while button is pressed
         if recording:
             spectrum = get_audio_spectrum()
-        draw_spectrum(spectrum, 150)
+        draw_spectrum(spectrum, 150, screen)
         
         # Event handling
         for event in pygame.event.get():
