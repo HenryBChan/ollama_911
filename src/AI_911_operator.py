@@ -4,8 +4,17 @@ import time
 import multiprocessing
 import ollama
 import pyttsx3
+import re
+import requests
+import json
 
 audio_path = "out/recorded_audio.wav"
+
+conversation_state = {
+    "name": None,
+    "location": None,
+    "emergency": None
+}
 
 # Load Whisper model (choose"tiny", "base", "small", "medium", or "large")
 model = whisper.load_model("small")  # Adjust based on speed vs accuracy
@@ -33,16 +42,131 @@ def microphone_transcribe():
     return transcribed_text
 
 # Process text with TinyLlama (Ollama)
-def process_text_with_tinyllama(text):
-    print("Processing with TinyLlama...")
-    response = ollama.chat(model="tinyllama", messages=[{"role": "user", "content": text}])
-    return response["message"]["content"]
+# def process_text_with_tinyllama(text):
+#     print("Processing with TinyLlama...")
+#     response = ollama.chat(model="tinyllama", messages=[{"role": "user", "content": text}])
+#     return response["message"]["content"]
+def query_tinyllama(user_message, current_state):
+    prompt = f"""
+Extract the user's name, location, and emergency description from the message.
+
+- Emergency should be a short description of what help is needed (e.g., "broken leg", "house fire", "car accident").
+- Only return valid JSON in the following format:
+  {{"name": ..., "location": ..., "emergency": ...}}
+- Only include values that were clearly and explicitly stated by the user.
+- If any value is NOT directly stated, set it to null.
+- Do NOT guess or default to placeholders like "User", "Not Provided", "None", "Anonymous", or "Unknown".
+- Do NOT explain or output code. Only return a JSON object.
+- DO NOT guess or infer names like "user", "drowning user", or similar.
+
+User message: "{user_message}"
+"""
+
+    response = requests.post(
+        "http://localhost:11434/api/generate",
+        json={
+            "model": "mistral",
+            "prompt": prompt.strip(),
+            "stream": False
+        }
+    )
+
+    raw_output = response.json()["response"].strip()
+    print("🧠 LLM raw output:", raw_output)  # helpful debug{}
+
+    try:
+        match = re.search(r'\{.*?\}', raw_output, re.DOTALL)
+        if not match:
+            raise ValueError("No JSON object found in LLM response")
+        json_str = match.group(0)
+        parsed = json.loads(json_str)
+        return {
+            "name": parsed.get("name", current_state["name"]),
+            "location": parsed.get("location", current_state["location"]),
+            "emergency": parsed.get("emergency", current_state["emergency"])
+        }
+    except Exception as e:
+        print("⚠️ Could not parse LLM response:", raw_output)
+        # Return the current state unchanged
+        return current_state.copy()
+
 
 # Text-to-speech
 def text_to_speech(text, tts_engine):
     print(f"TinyLlama Response: {text}")
     tts_engine.say(text)
     tts_engine.runAndWait()
+
+def is_vague_emergency(description):
+    if not description:
+        return True
+    vague_terms = ["help", "emergency", "problem", "issue", "situation"]
+    return description.strip().lower() in vague_terms
+
+def is_vague_location(loc):
+    if not loc:
+        return True
+    vague_terms = [
+        "somewhere", "around", "maybe", "not sure", "i don't know", 
+        "don't know", "unknown", "lost", "nearby", "far away", "an island"
+    ]
+    return any(term in loc.lower() for term in vague_terms)
+
+def format_emergency(emergency):
+    if not emergency or emergency.lower() in ["yes", "no", "true", "false", "help", "emergency"]:
+        return "unspecified emergency"
+
+    # Basic cleanup
+    emergency_clean = re.sub(r"\b(my|i have|i’m|i am|the)\b", "", emergency, flags=re.IGNORECASE).strip()
+    emergency_clean = emergency_clean[0].lower() + emergency_clean[1:]
+
+    if "fire" in emergency_clean:
+        if "house" in emergency_clean:
+            return "house fire emergency"
+        return f"{emergency_clean} emergency"
+    elif any(word in emergency_clean for word in ["broken", "neck", "injury", "hurt", "bleeding", "cut", "pain"]):
+        return f"{emergency_clean} emergency"
+    else:
+        return f"{emergency_clean} emergency"
+    
+def next_question():
+    if not conversation_state["name"]:
+        return "Can I have your name, please?"
+    elif not conversation_state["location"]:
+        return "What is your location?"
+    elif not conversation_state["emergency"]:
+        return "What is the emergency?"
+    else:
+        name = conversation_state["name"] or "unknown"
+        location = conversation_state["location"] or "unspecified location"
+        emergency = format_emergency(conversation_state["emergency"])
+        return f"{name}, we received your {emergency} at {location}. Help is on the way."
+    
+def dispatch_services(state):
+    """
+    Determine which emergency services to dispatch based on the emergency description.
+    Returns a list of services like: ['EMS', 'Fire Department']
+    """
+    services = set()
+    emergency = (state.get("emergency") or "").lower()
+
+    # Dispatch logic based on keywords
+    if any(term in emergency for term in ["broken", "bleeding", "hurt", "injury", "unconscious", "pain", "neck", "heart attack", "stroke"]):
+        services.add("EMS")
+
+    if any(term in emergency for term in ["fire", "smoke", "burning", "explosion"]):
+        services.add("Fire Department")
+
+    if any(term in emergency for term in ["shooting", "robbery", "assault", "theft", "violence", "gun", "knife", "threat"]):
+        services.add("Police")
+
+    if any(term in emergency for term in ["chemical", "hazmat", "toxic", "radiation", "spill", "gas leak"]):
+        services.add("HazMat Team")
+
+    if not services:
+        services.add("General Emergency Dispatcher")  # Catch-all fallback
+
+    return list(services)
 
 out_dir = "out"
 wav_path = os.path.join(out_dir, "recorded_audio.wav")
@@ -55,11 +179,7 @@ def operator_main():
     # time.sleep(1.5)
     text_to_speech("9 1 1 what's your emergency?", tts_engine)
 
-    conversation_state = {
-        "name": None,
-        "location": None,
-        "emergency": None
-    }
+
 
     print(f"Waiting for {wav_path} to be created...")
 
@@ -73,10 +193,37 @@ def operator_main():
         current_size = os.path.getsize(wav_path)
         if current_size != prev_size:
             text = microphone_transcribe()
-            response_text = process_text_with_tinyllama(text)
-            # text_to_speech(response_text, tts_engine)
-
+            extracted = query_tinyllama(text, conversation_state)
+           
             # try to find key words to figure out the situation
+            for key in conversation_state:
+                new_value = extracted.get(key)
+
+                if key == "emergency":
+                    if (not conversation_state[key]) or is_vague_emergency(conversation_state[key]):
+                        if new_value and not is_vague_emergency(new_value):
+                            conversation_state[key] = new_value
+
+                elif key == "location":
+                    if (not conversation_state[key]) or is_vague_location(conversation_state[key]):
+                        if new_value and not is_vague_location(new_value):
+                            conversation_state[key] = new_value
+
+                elif not conversation_state[key] and new_value:
+                    conversation_state[key] = new_value
+
+            # Re-check location vagueness
+            if conversation_state["location"] and is_vague_location(conversation_state["location"]):
+                outgoing_message = "Can you be more specific about your location? Any nearby landmarks or street names?"
+                text_to_speech(outgoing_message, tts_engine)
+                continue
+
+            if conversation_state["emergency"] and is_vague_emergency(conversation_state["emergency"]):
+                # print (f'DEBUG {conversation_state["emergency"]}')
+                outgoing_message = "Can you briefly describe what the emergency is?"
+                text_to_speech(outgoing_message, tts_engine)
+                continue
+            
             # try to extract important information (emergency_type(fire, ...), location, ) 
             # review what information is missing
             # if information is missing then 
@@ -91,11 +238,14 @@ def operator_main():
             #           message - "emergency services are dispatched"
             #    else
             #       message - "sorry your <emergency_type> is not considered an emergency, would you like to restate"
+            prompt = next_question()
+            text_to_speech(prompt, tts_engine)
 
+        if all(conversation_state.values()):
+            services = dispatch_services(conversation_state)
+            print(f"🚨 Dispatching: {', '.join(services)}")
+            break
 
-            outgoing_message = "hello"
-
-            text_to_speech(outgoing_message, tts_engine)
         prev_size = current_size
         time.sleep(0.5)
 
