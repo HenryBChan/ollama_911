@@ -55,6 +55,8 @@ spectrum = np.zeros(20, dtype=int)
 audio_frames = []
 recording_thread = None
 
+# Global talking flag
+talking = False
 
 def get_audio_spectrum():
     if not recording:
@@ -105,20 +107,6 @@ def record_audio():
     local_stream.stop_stream()
     local_stream.close()
 
-# 911 Woman
-mouth_closed_img = pygame.image.load("images/911_women_closed.png")
-mouth_open_img = pygame.image.load("images/911_women_open.png")
-mouth_closed_img = pygame.transform.scale(mouth_closed_img, (100, 100))
-mouth_open_img = pygame.transform.scale(mouth_open_img, (100, 100))
-
-# Variables for mouth animation
-current_img = mouth_closed_img
-last_switch_time = 0
-mouth_open = False
-
-# Global talking flag
-talking = False
-
 # Speak function runs in a thread
 def speak(text):
     global talking
@@ -129,6 +117,19 @@ def speak(text):
 
 def gui_main():
     global backend_processing, recording, spectrum
+
+    # 911 Woman
+    mouth_closed_img = pygame.image.load("images/911_women_closed.png")
+    mouth_open_img = pygame.image.load("images/911_women_open.png")
+    mouth_closed_img = pygame.transform.scale(mouth_closed_img, (100, 100))
+    mouth_open_img = pygame.transform.scale(mouth_open_img, (100, 100))
+
+    # Variables for mouth animation
+    current_img = mouth_closed_img
+    last_switch_time = 0
+    mouth_open = False
+
+
 
     out_dir = "out"
 

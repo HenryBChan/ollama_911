@@ -92,10 +92,12 @@ User message: "{user_message}"
 
 
 # Text-to-speech
-def text_to_speech(text, tts_engine):
+def text_to_speech(text, out_dir):
     print(f"TinyLlama Response: {text}")
-    tts_engine.say(text)
-    tts_engine.runAndWait()
+    # tts_engine.say(text)
+    # tts_engine.runAndWait()
+    with open(f"{out_dir}/operator_voice.txt", "w", encoding="utf-8") as f:
+        f.write(text)
 
 def is_vague_emergency(description):
     if not description:
@@ -174,12 +176,12 @@ wav_path = os.path.join(out_dir, "recorded_audio.wav")
 
 def operator_main():
 
-    # Initialize text to speech engine
-    tts_engine = pyttsx3.init()
+    # # Initialize text to speech engine
+    # tts_engine = pyttsx3.init()
 
     # time.sleep(1.5)
-    text_to_speech("9 1 1 what's your emergency?", tts_engine)
-
+    text_to_speech("9 1 1 what's your emergency?", out_dir)
+    
     print(f"Waiting for {wav_path} to be created...")
 
     # Wait for the file to appear
@@ -214,13 +216,13 @@ def operator_main():
             # Re-check location vagueness
             if conversation_state["location"] and is_vague_location(conversation_state["location"]):
                 outgoing_message = "Can you be more specific about your location? Any nearby landmarks or street names?"
-                text_to_speech(outgoing_message, tts_engine)
+                text_to_speech(outgoing_message, out_dir)
                 continue
 
             if conversation_state["emergency"] and is_vague_emergency(conversation_state["emergency"]):
                 # print (f'DEBUG {conversation_state["emergency"]}')
                 outgoing_message = "Can you briefly describe what the emergency is?"
-                text_to_speech(outgoing_message, tts_engine)
+                text_to_speech(outgoing_message, out_dir)
                 continue
             
             # try to extract important information (emergency_type(fire, ...), location, ) 
@@ -238,7 +240,7 @@ def operator_main():
             #    else
             #       message - "sorry your <emergency_type> is not considered an emergency, would you like to restate"
             prompt = next_question()
-            text_to_speech(prompt, tts_engine)
+            text_to_speech(prompt, out_dir)
 
         if all(conversation_state.values()):
             services = dispatch_services(conversation_state)
