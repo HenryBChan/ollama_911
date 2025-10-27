@@ -17,14 +17,11 @@ def transcribe_audio(audio_path):
     return result["text"].strip()
 
 def microphone_transcribe():
-    print("Voice Assistant Started! Say something...\n")
-    # with open(audio_output_file, "w") as f:
-    # while True:
-    # audio_path = record_audio()
+    # print("Voice Assistant Started! Say something...\n")
+
     transcribed_text = transcribe_audio(audio_path)
     print (f"Trascribed text : {transcribed_text}")
-    # os.remove(audio_path)
-    
+     
     # if transcribed_text.lower() == "exit.":
     #     print("Exiting microphone listener...")
     #     break    
@@ -54,6 +51,16 @@ def operator_main():
 
     # Initialize text to speech engine
     tts_engine = pyttsx3.init()
+
+    # time.sleep(1.5)
+    text_to_speech("9 1 1 what's your emergency?", tts_engine)
+
+    conversation_state = {
+        "name": None,
+        "location": None,
+        "emergency": None
+    }
+
     print(f"Waiting for {wav_path} to be created...")
 
     # Wait for the file to appear
@@ -62,12 +69,33 @@ def operator_main():
     
     prev_size = -1
 
-    while True:
+    while not all(conversation_state.values()):
         current_size = os.path.getsize(wav_path)
         if current_size != prev_size:
             text = microphone_transcribe()
             response_text = process_text_with_tinyllama(text)
-            text_to_speech(response_text, tts_engine)
+            # text_to_speech(response_text, tts_engine)
+
+            # try to find key words to figure out the situation
+            # try to extract important information (emergency_type(fire, ...), location, ) 
+            # review what information is missing
+            # if information is missing then 
+            #    create a message - ask user to clarify and repeat from beginning
+            # else
+            #    review emergecy and if it is an emergency
+            #    if emergency
+            #       if we need to escalate to human
+            #           message - "connecting with my human supervisor"
+            #       else
+            #           initiate emergency servcies to dispatch
+            #           message - "emergency services are dispatched"
+            #    else
+            #       message - "sorry your <emergency_type> is not considered an emergency, would you like to restate"
+
+
+            outgoing_message = "hello"
+
+            text_to_speech(outgoing_message, tts_engine)
         prev_size = current_size
         time.sleep(0.5)
 
