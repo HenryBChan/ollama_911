@@ -1,12 +1,12 @@
 import whisper
 import os
 import time
-import multiprocessing
-import ollama
+# import ollama
 import pyttsx3
 import re
 import requests
 import json
+from pathlib import Path
 
 audio_path = "out/recorded_audio.wav"
 
@@ -100,13 +100,14 @@ def text_to_speech(text, tts_engine):
 def is_vague_emergency(description):
     if not description:
         return True
-    vague_terms = ["help", "emergency", "problem", "issue", "situation"]
+    vague_terms = ["Not Provided", "None", "help", "emergency", "problem", "issue", "situation"]
     return description.strip().lower() in vague_terms
 
 def is_vague_location(loc):
     if not loc:
         return True
     vague_terms = [
+        "Not Provided", "None",
         "somewhere", "around", "maybe", "not sure", "i don't know", 
         "don't know", "unknown", "lost", "nearby", "far away", "an island"
     ]
@@ -179,8 +180,6 @@ def operator_main():
     # time.sleep(1.5)
     text_to_speech("9 1 1 what's your emergency?", tts_engine)
 
-
-
     print(f"Waiting for {wav_path} to be created...")
 
     # Wait for the file to appear
@@ -244,6 +243,13 @@ def operator_main():
         if all(conversation_state.values()):
             services = dispatch_services(conversation_state)
             print(f"🚨 Dispatching: {', '.join(services)}")
+
+            # Define the file path
+            path = Path("out") / "close.gui"
+            # Make sure the directory exists
+            path.parent.mkdir(parents=True, exist_ok=True)
+            # Create the blank file (or update its timestamp if it already exists)
+            path.touch(exist_ok=True)
             break
 
         prev_size = current_size

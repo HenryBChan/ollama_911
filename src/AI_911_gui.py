@@ -8,6 +8,7 @@ import threading
 import pyttsx3
 import os
 import shutil
+from pathlib import Path
 
 # Initialize pyttsx3 TTS engine
 engine = pyttsx3.init()
@@ -212,6 +213,13 @@ def gui_main():
         pygame.display.flip()
         pygame.time.delay(5)  # Reduced delay for smoother real-time responsiveness
     
+        # Path to the file you want to monitor
+        file_path = Path(f"{out_dir}/close.gui")
+
+        if file_path.exists():
+            print ("GUI : exiting")
+            break
+
     # Close the global spectrum stream
     stream.stop_stream()
     stream.close()
