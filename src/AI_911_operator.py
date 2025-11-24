@@ -47,6 +47,9 @@ def microphone_transcribe():
 #     response = ollama.chat(model="tinyllama", messages=[{"role": "user", "content": text}])
 #     return response["message"]["content"]
 def query_tinyllama(user_message, current_state):
+    # Initialize raw_output to a safe, defined value
+    raw_output = ""
+
     prompt = f"""
 Extract the user's name, location, and emergency description from the message.
 
@@ -62,19 +65,51 @@ Extract the user's name, location, and emergency description from the message.
 User message: "{user_message}"
 """
 
-    response = requests.post(
-        "http://localhost:11434/api/generate",
-        json={
-            "model": "mistral",
-            "prompt": prompt.strip(),
-            "stream": False
-        }
-    )
-
-    raw_output = response.json()["response"].strip()
-    print("🧠 LLM raw output:", raw_output)  # helpful debug{}
-
     try:
+
+        response = requests.post(
+            "http://localhost:11434/api/generate",
+            json={
+                # "model": "mistral",
+                # "model": "phi3:3.8b",
+                "model": "tinyllama:1.1b",
+                "prompt": prompt.strip(),
+                "stream": False
+            },
+            timeout=90 #seconds
+        )
+
+        # 1. Check the HTTP status code first
+        response.raise_for_status() # Raises an exception for 4xx/5xx errors
+        
+        response_json = response.json()
+
+        # 2. Check for the 'error' key in the JSON response
+        if 'error' in response_json:
+            print(f"⚠️ Ollama API Error: {response_json['error']}")
+            return current_state.copy() # Return existing state on error
+
+        # 3. Proceed only if 'response' key is present
+        if 'response' not in response_json:
+            print("⚠️ Ollama API Response missing 'response' key (unknown format).")
+            # Print full response for debugging
+            print("Full response:", response_json)
+            return current_state.copy()
+        
+        raw_output = response.json()["response"].strip()
+        print("🧠 LLM raw output:", raw_output)  # helpful debug{}
+
+    except requests.exceptions.RequestException as e:
+        # <-- FIX 2: Catch HTTP errors (including 500) here
+        # This prevents the error from propagating to the outer exception block
+        print(f"❌ HTTP Request Failed (Ollama Server Error likely): {e}")
+        return current_state.copy()
+    
+    # --- End HTTP Request Try Block ---
+    
+    # Now, try to parse the (potentially empty) raw_output
+    try:
+        # If raw_output is empty due to an upstream failure, this will fail gracefully.
         match = re.search(r'\{.*?\}', raw_output, re.DOTALL)
         if not match:
             raise ValueError("No JSON object found in LLM response")

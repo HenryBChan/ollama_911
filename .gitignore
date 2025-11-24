@@ -1,7 +1,7 @@
 bin/*.txt
 *.wav
 microphone_capture.txt
-
+out/*
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
