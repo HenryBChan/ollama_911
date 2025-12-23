@@ -1,11 +1,12 @@
 import whisper
 import os
 import time
-# import ollama
 import pyttsx3
 import re
-import requests
 import json
+import gc
+import subprocess
+
 from pathlib import Path
 
 audio_path = "out/recorded_audio.wav"
@@ -41,90 +42,84 @@ def microphone_transcribe():
     # time.sleep(0.5)
     return transcribed_text
 
-# Process text with TinyLlama (Ollama)
-# def process_text_with_tinyllama(text):
-#     print("Processing with TinyLlama...")
-#     response = ollama.chat(model="tinyllama", messages=[{"role": "user", "content": text}])
-#     return response["message"]["content"]
-def query_tinyllama(user_message, current_state):
-    # Initialize raw_output to a safe, defined value
-    raw_output = ""
+def clean_llm_output(text: str) -> str:
+    ANSI_ESCAPE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
+    # Remove ANSI escape codes
+    text = ANSI_ESCAPE.sub("", text)
 
-    prompt = f"""
-Extract the user's name, location, and emergency description from the message.
+    # Remove markdown code fences
+    text = re.sub(r"```(?:json)?", "", text, flags=re.IGNORECASE)
 
-- Emergency should be a short description of what help is needed (e.g., "broken leg", "house fire", "car accident").
-- Only return valid JSON in the following format:
-  {{"name": ..., "location": ..., "emergency": ...}}
-- Only include values that were clearly and explicitly stated by the user.
-- If any value is NOT directly stated, set it to null.
-- Do NOT guess or default to placeholders like "User", "Not Provided", "None", "Anonymous", or "Unknown".
-- Do NOT explain or output code. Only return a JSON object.
-- DO NOT guess or infer names like "user", "drowning user", or similar.
+    return text.strip()
 
-User message: "{user_message}"
-"""
+def query_phi3_mini(user_message, current_state):
+    # HARD truncate user input (critical)
+    user_message = user_message[:500]
+
+    # Keep prompt extremely small
+    prompt = (
+        "Extract name, location, and emergency.\n"
+        "Return ONLY valid JSON:\n"
+        '{"name": null, "location": null, "emergency": null}\n'
+        f'Text: "{user_message}"\n'
+        "JSON:"
+    )
+# - Emergency should be a short description of what help is needed (e.g., "broken leg", "house fire", "car accident").
+# - Only return valid JSON in the following format:
+#   {{"name": ..., "location": ..., "emergency": ...}}
+# - Only include values that were clearly and explicitly stated by the user.
+# - If any value is NOT directly stated, set it to null.
+# - Do NOT guess or default to placeholders like "User", "Not Provided", "None", "Anonymous", or "Unknown".
+# - Do NOT explain or output code. Only return a JSON object.
+# - DO NOT guess or infer names like "user", "drowning user", or similar.
 
     try:
-
-        response = requests.post(
-            "http://localhost:11434/api/generate",
-            json={
-                # "model": "mistral",
-                # "model": "phi3:3.8b",
-                "model": "tinyllama:1.1b",
-                "prompt": prompt.strip(),
-                "stream": False
-            },
-            timeout=90 #seconds
+        result = subprocess.run(
+            ["ollama", "run", "gemma2:2b", prompt],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="ignore",
+            timeout=120
         )
 
-        # 1. Check the HTTP status code first
-        response.raise_for_status() # Raises an exception for 4xx/5xx errors
-        
-        response_json = response.json()
+#                 # "model": "mistral",       # requires 4.5 Gb mem
+#                 # "model": "phi3:3.8b",
+#                 #"model": "tinyllama:1.1b",
+#                 "model": "phi3:mini",       # requires more mem
+#                 #"model": "gemma2:2b",
 
-        # 2. Check for the 'error' key in the JSON response
-        if 'error' in response_json:
-            print(f"⚠️ Ollama API Error: {response_json['error']}")
-            return current_state.copy() # Return existing state on error
-
-        # 3. Proceed only if 'response' key is present
-        if 'response' not in response_json:
-            print("⚠️ Ollama API Response missing 'response' key (unknown format).")
-            # Print full response for debugging
-            print("Full response:", response_json)
-            return current_state.copy()
-        
-        raw_output = response.json()["response"].strip()
-        print("🧠 LLM raw output:", raw_output)  # helpful debug{}
-
-    except requests.exceptions.RequestException as e:
-        # <-- FIX 2: Catch HTTP errors (including 500) here
-        # This prevents the error from propagating to the outer exception block
-        print(f"❌ HTTP Request Failed (Ollama Server Error likely): {e}")
+        raw_output = clean_llm_output(result.stdout)
+        print(f"raw_output {raw_output}")
+    except subprocess.TimeoutExpired:
+        print("⏱ Ollama subprocess timed out")
         return current_state.copy()
-    
-    # --- End HTTP Request Try Block ---
-    
-    # Now, try to parse the (potentially empty) raw_output
+
+    except Exception as e:
+        print("❌ Ollama request failed:", e)
+        return current_state.copy()
+
+    # Immediately drop references we no longer need
+    del result
+    # del data
+    gc.collect()
+
+    # Parse JSON safely
     try:
-        # If raw_output is empty due to an upstream failure, this will fail gracefully.
-        match = re.search(r'\{.*?\}', raw_output, re.DOTALL)
+        match = re.search(r"\{.*\}", raw_output, re.DOTALL)
         if not match:
-            raise ValueError("No JSON object found in LLM response")
-        json_str = match.group(0)
-        parsed = json.loads(json_str)
+            return current_state.copy()
+
+        parsed = json.loads(match.group(0))
+
         return {
             "name": parsed.get("name", current_state["name"]),
             "location": parsed.get("location", current_state["location"]),
             "emergency": parsed.get("emergency", current_state["emergency"])
         }
-    except Exception as e:
-        print("⚠️ Could not parse LLM response:", raw_output)
-        # Return the current state unchanged
-        return current_state.copy()
 
+    except Exception:
+        return current_state.copy()
 
 # Text-to-speech
 def text_to_speech(text, out_dir):
@@ -178,6 +173,7 @@ def next_question():
         name = conversation_state["name"] or "unknown"
         location = conversation_state["location"] or "unspecified location"
         emergency = format_emergency(conversation_state["emergency"])
+
         return f"{name}, we received your {emergency} at {location}. Help is on the way."
     
 def dispatch_services(state):
@@ -229,7 +225,7 @@ def operator_main():
         current_size = os.path.getsize(wav_path)
         if current_size != prev_size:
             text = microphone_transcribe()
-            extracted = query_tinyllama(text, conversation_state)
+            extracted = query_phi3_mini(text, conversation_state)
            
             # try to find key words to figure out the situation
             for key in conversation_state:

@@ -1,4 +1,5 @@
 import multiprocessing
+import subprocess
 
 def main():
     from src import AI_911_operator
@@ -15,6 +16,9 @@ def main():
     # Wait for GUI to close
     p1.join()
     p2.terminate()
+
+    # 🧠 Stop Ollama models + free RAM
+    subprocess.run(["ollama", "stop"], capture_output=True)
 
 if __name__ == "__main__":
     main()
