@@ -10,16 +10,6 @@ import os
 import shutil
 from pathlib import Path
 
-# Initialize pyttsx3 TTS engine
-engine = pyttsx3.init()
-
-# Try to select a female voice
-voices = engine.getProperty('voices')
-for voice in voices:
-    if "female" in voice.name.lower() or "zira" in voice.name.lower() or "samantha" in voice.name.lower():
-        engine.setProperty('voice', voice.id)
-        break
-
 # Load button image
 button_image = pygame.image.load("images/phone_button.jpg")
 button_image = pygame.transform.scale(button_image, (100, 100))
@@ -110,9 +100,26 @@ def record_audio():
 # Speak function runs in a thread
 def speak(text):
     global talking
+    debug = 0
+    if debug: print("TTS START:", text[:50])
     talking = True
-    engine.say(text)
-    engine.runAndWait()
+    try:
+        # Initialize pyttsx3 TTS engine
+        engine = pyttsx3.init()
+
+        # Try to select a female voice
+        voices = engine.getProperty('voices')
+        for voice in voices:
+            if "female" in voice.name.lower() or "zira" in voice.name.lower() or "samantha" in voice.name.lower():
+                engine.setProperty('voice', voice.id)
+                break
+
+        engine.say(text)
+        engine.runAndWait()
+        engine.stop()
+        if debug: print("TTS DONE")
+    except Exception as e:
+        if debug: print("TTS ERROR:", e)
     talking = False
 
 def gui_main():
@@ -199,7 +206,7 @@ def gui_main():
                 with open(operator_voice_txt_file, "r", encoding="utf-8") as f:
                     operator_voice_txt = f.read()
                 os.remove(operator_voice_txt_file)  # delete after reading
-                # print("operator_voice.txt was read and deleted.")
+                print("operator_voice.txt was read and deleted.")
                 threading.Thread(target=speak, args=(operator_voice_txt,)).start()
 
         if talking:

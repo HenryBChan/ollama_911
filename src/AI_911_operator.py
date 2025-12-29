@@ -1,7 +1,6 @@
 import whisper
 import os
 import time
-import pyttsx3
 import re
 import json
 import gc
@@ -59,19 +58,16 @@ def query_phi3_mini(user_message, current_state):
     # Keep prompt extremely small
     prompt = (
         "Extract name, location, and emergency.\n"
+
+        "Emergency should be a short description of what help is needed (e.g., 'broken leg', 'house fire', 'car accident'.\n"
+        "Only include values that were clearly and explicitly stated by the user.\n"
         "Return ONLY valid JSON:\n"
+        "DO NOT guess or infer names like 'user', 'drowning user', or similar.\n"
         '{"name": null, "location": null, "emergency": null}\n'
         f'Text: "{user_message}"\n'
         "JSON:"
     )
-# - Emergency should be a short description of what help is needed (e.g., "broken leg", "house fire", "car accident").
-# - Only return valid JSON in the following format:
-#   {{"name": ..., "location": ..., "emergency": ...}}
-# - Only include values that were clearly and explicitly stated by the user.
-# - If any value is NOT directly stated, set it to null.
 # - Do NOT guess or default to placeholders like "User", "Not Provided", "None", "Anonymous", or "Unknown".
-# - Do NOT explain or output code. Only return a JSON object.
-# - DO NOT guess or infer names like "user", "drowning user", or similar.
 
     try:
         result = subprocess.run(
