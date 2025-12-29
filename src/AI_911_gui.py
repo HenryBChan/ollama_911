@@ -1,5 +1,5 @@
 from turtle import Screen
-import pygame
+
 import time
 import numpy as np
 import pyaudio
@@ -9,11 +9,6 @@ import pyttsx3
 import os
 import shutil
 from pathlib import Path
-
-# Load button image
-button_image = pygame.image.load("images/phone_button.jpg")
-button_image = pygame.transform.scale(button_image, (100, 100))
-button_rect = button_image.get_rect(center=(300, 300))
 
 # Colors
 WHITE = (255, 255, 255)
@@ -69,14 +64,13 @@ def get_audio_spectrum():
     fft_data = np.interp(fft_data[:20], (0, np.max(fft_data)), (THRESHOLD_LOW, 100))  # Doubled max height
     return fft_data.astype(int)
 
-
-def draw_spectrum(spectrum, y_offset, screen):
+def draw_spectrum(spectrum, y_offset, screen, pygame):
     x = 50
     for bar in spectrum:
         pygame.draw.rect(screen, GREEN, (x, y_offset - bar, 10, bar))
         x += 15
 
-
+# on mouse unclick
 def save_audio(out_dir):
     if not audio_frames:
         return
@@ -87,7 +81,7 @@ def save_audio(out_dir):
     wf.writeframes(b"".join(audio_frames))
     wf.close()
 
-
+# on mouse click down
 def record_audio():
     global recording, audio_frames
     audio_frames = []  # Reset audio frames for new recording
@@ -124,7 +118,13 @@ def speak(text):
     talking = False
 
 def gui_main():
+    import pygame
     global backend_processing, recording, spectrum
+
+    # Load button image
+    button_image = pygame.image.load("images/phone_button.jpg")
+    button_image = pygame.transform.scale(button_image, (100, 100))
+    button_rect = button_image.get_rect(center=(300, 300))
 
     # 911 Woman
     mouth_closed_img = pygame.image.load("images/911_women_closed.png")
@@ -137,11 +137,7 @@ def gui_main():
     last_switch_time = 0
     mouth_open = False
 
-
-
     out_dir = "out"
-
-    # If "out" exists, delete it
     if os.path.exists(out_dir):
         shutil.rmtree(out_dir)
 
@@ -180,7 +176,7 @@ def gui_main():
         # Draw recording spectrum continuously while button is pressed
         if recording:
             spectrum = get_audio_spectrum()
-        draw_spectrum(spectrum, 150, screen)
+        draw_spectrum(spectrum, 150, screen, pygame)
         
         # Event handling
         for event in pygame.event.get():
@@ -206,7 +202,7 @@ def gui_main():
                 with open(operator_voice_txt_file, "r", encoding="utf-8") as f:
                     operator_voice_txt = f.read()
                 os.remove(operator_voice_txt_file)  # delete after reading
-                print("operator_voice.txt was read and deleted.")
+                # print("operator_voice.txt was read and deleted.")
                 threading.Thread(target=speak, args=(operator_voice_txt,)).start()
 
         if talking:

@@ -28,12 +28,6 @@ def record_audio():
         f.write(audio.get_wav_data())
     return audio_path
 
-# convert audio file to text using whisper
-def transcribe_audio(audio_path):
-    print("Transcribing audio...")
-    result = model.transcribe(audio_path)
-    return result["text"].strip()
-
 def is_valid_text(text):
     return bool(re.match(r'^[a-zA-Z0-9 .,!?"\'-]+$', text))
 
@@ -54,7 +48,8 @@ def microphone_listener():
     with open(audio_output_file, "w") as f:
         while True:
             audio_path = record_audio()
-            transcribed_text = transcribe_audio(audio_path)
+            result = model.transcribe(audio_path)
+            transcribed_text = result["text"].strip()
             print (f"Trascribed text : {transcribed_text}")
             os.remove(audio_path)
             

@@ -1,6 +1,9 @@
 import multiprocessing
 import subprocess
 
+# TODO : 
+#    * enhance is_vague_location to require a valid street and address.  If person says appartment or condo then require unit number to be defined. 
+
 def main():
     from src import AI_911_operator
     from src import AI_911_gui
