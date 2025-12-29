@@ -27,7 +27,7 @@ def transcribe_audio(audio_path):
 
 def microphone_transcribe():
     # print("Voice Assistant Started! Say something...\n")
-
+    
     transcribed_text = transcribe_audio(audio_path)
     print (f"Trascribed text : {transcribed_text}")
      
@@ -51,7 +51,7 @@ def clean_llm_output(text: str) -> str:
 
     return text.strip()
 
-def query_phi3_mini(user_message, current_state):
+def query_llm(user_message, current_state):
     # HARD truncate user input (critical)
     user_message = user_message[:500]
 
@@ -119,9 +119,7 @@ def query_phi3_mini(user_message, current_state):
 
 # Text-to-speech
 def text_to_speech(text, out_dir):
-    print(f"TinyLlama Response: {text}")
-    # tts_engine.say(text)
-    # tts_engine.runAndWait()
+    print(f"Operator Response: {text}")
     with open(f"{out_dir}/operator_voice.txt", "w", encoding="utf-8") as f:
         f.write(text)
 
@@ -221,7 +219,7 @@ def operator_main():
         current_size = os.path.getsize(wav_path)
         if current_size != prev_size:
             text = microphone_transcribe()
-            extracted = query_phi3_mini(text, conversation_state)
+            extracted = query_llm(text, conversation_state)
            
             # try to find key words to figure out the situation
             for key in conversation_state:
@@ -252,20 +250,6 @@ def operator_main():
                 text_to_speech(outgoing_message, out_dir)
                 continue
             
-            # try to extract important information (emergency_type(fire, ...), location, ) 
-            # review what information is missing
-            # if information is missing then 
-            #    create a message - ask user to clarify and repeat from beginning
-            # else
-            #    review emergecy and if it is an emergency
-            #    if emergency
-            #       if we need to escalate to human
-            #           message - "connecting with my human supervisor"
-            #       else
-            #           initiate emergency servcies to dispatch
-            #           message - "emergency services are dispatched"
-            #    else
-            #       message - "sorry your <emergency_type> is not considered an emergency, would you like to restate"
             prompt = next_question()
             text_to_speech(prompt, out_dir)
 

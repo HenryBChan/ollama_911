@@ -90,6 +90,7 @@ def save_audio(out_dir):
 
 def record_audio():
     global recording, audio_frames
+    audio_frames = []  # Reset audio frames for new recording
     local_stream = p.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK)
     while recording:
         data = local_stream.read(CHUNK, exception_on_overflow=False)
@@ -188,7 +189,6 @@ def gui_main():
             elif event.type == pygame.MOUSEBUTTONDOWN and button_rect.collidepoint(event.pos):
                 if not backend_processing:
                     recording = True
-                    audio_frames = []  # Reset audio frames for new recording
                     recording_thread = threading.Thread(target=record_audio, daemon=True)
                     recording_thread.start()
             elif event.type == pygame.MOUSEBUTTONUP and recording:
