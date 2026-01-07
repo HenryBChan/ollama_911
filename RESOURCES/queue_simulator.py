@@ -4,7 +4,7 @@ import random
 # -----------------------------
 # Configuration
 # -----------------------------
-SCREEN_W, SCREEN_H = 1200, 720
+SCREEN_W, SCREEN_H = 1200, 760
 FPS = 60
 
 NUM_OPERATORS = 20
@@ -21,6 +21,17 @@ QUEUE_MAX_PER_ROW = 60
 
 SIM_RATE_START = 20
 SIM_RATE_MIN = 1
+
+RAINBOW_COLORS = [
+    (255, 0, 0),
+    (255, 127, 0),
+    (255, 255, 0),
+    (0, 200, 0),
+    (0, 150, 255),
+    (75, 0, 130),
+    (148, 0, 211),
+    (255, 20, 147),
+]
 
 # -----------------------------
 # Operator Class
@@ -66,7 +77,7 @@ running_sim = False
 
 sim_rate = SIM_RATE_START
 
-start_button = pygame.Rect(520, 320, 160, 60)
+start_button = pygame.Rect(520, 330, 160, 60)
 
 # -----------------------------
 # Helper Functions
@@ -79,6 +90,12 @@ def format_time(seconds):
     m = int(seconds // 60)
     s = int(seconds % 60)
     return f"{m}:{s:02d}"
+
+
+def estimated_wait_time():
+    if NUM_OPERATORS == 0:
+        return 0
+    return (len(call_queue) / NUM_OPERATORS) * avg_call_length
 
 
 # -----------------------------
@@ -136,7 +153,8 @@ while running:
             time_since_last_call = 0
             call_queue.append({
                 "duration": random.uniform(avg_call_length * 0.8, avg_call_length * 1.2),
-                "enqueue_time": sim_time
+                "enqueue_time": sim_time,
+                "color": random.choice(RAINBOW_COLORS)
             })
 
         # Assign Calls (respect minimum queue time)
@@ -165,6 +183,11 @@ while running:
     draw_text(f"Call Interval: {call_interval}s (← / →)", 20, 160)
     draw_text(f"Calls Waiting: {len(call_queue)}", 20, 190)
 
+    draw_text(
+        f"Estimated Wait Time: {format_time(estimated_wait_time())}",
+        20, 220
+    )
+
     # Start Button
     if not running_sim:
         pygame.draw.rect(screen, (50, 180, 50), start_button)
@@ -173,8 +196,8 @@ while running:
     # -------------------------
     # Queue Visualization
     # -------------------------
-    base_x, base_y = 20, 240
-    for i, _ in enumerate(call_queue):
+    base_x, base_y = 20, 270
+    for i, call in enumerate(call_queue):
         row = i // QUEUE_MAX_PER_ROW
         col = i % QUEUE_MAX_PER_ROW
         x = base_x + col * (QUEUE_PERSON_SIZE + 2)
@@ -182,18 +205,18 @@ while running:
 
         pygame.draw.rect(
             screen,
-            (200, 200, 50),
+            call["color"],
             (x, y, QUEUE_PERSON_SIZE, QUEUE_PERSON_SIZE)
         )
 
-    draw_text("Incoming Call Queue", base_x, base_y - 25)
+    draw_text("Incoming Call Queue (Colored Callers)", base_x, base_y - 25)
 
     # -------------------------
     # Operators
     # -------------------------
     for i, operator in enumerate(operators):
         x = 20 + (i % 10) * 100
-        y = 420 + (i // 10) * 100
+        y = 470 + (i // 10) * 100
         color = (200, 50, 50) if operator.busy else (50, 200, 50)
         pygame.draw.rect(screen, color, (x, y, 80, 45))
         draw_text(f"O{i+1}", x + 20, y + 12)
