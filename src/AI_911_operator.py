@@ -107,6 +107,11 @@ def is_vague_emergency(description):
     vague_terms = ["Not Provided", "None", "help", "emergency", "problem", "issue", "situation"]
     return description.strip().lower() in vague_terms
 
+#Apartment / unit number
+#Cross streets
+#City / town
+#“Are you inside or outside?”
+#“Is that correct?” (confirmation)
 def is_vague_location(loc):
     if not loc:
         return True
@@ -138,7 +143,7 @@ def next_question():
     if not conversation_state["name"]:
         return "Can I have your name, please?"
     elif not conversation_state["location"]:
-        return "What is your location?"
+        return "What is the address of your emergency?"
     elif not conversation_state["emergency"]:
         return "What is the emergency?"
     else:
