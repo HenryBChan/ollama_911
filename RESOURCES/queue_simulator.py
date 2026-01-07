@@ -1,20 +1,26 @@
 import pygame
 import random
-import time
 
 # -----------------------------
 # Configuration
 # -----------------------------
-SCREEN_W, SCREEN_H = 1000, 600
+SCREEN_W, SCREEN_H = 1200, 720
 FPS = 60
 
 NUM_OPERATORS = 20
+MIN_QUEUE_TIME = 3.0  # seconds (simulation time)
 
-CALL_LENGTH_START = 7 * 60        # 7 minutes
-CALL_INTERVAL_START = 45          # 45 seconds
-STEP = 15                         # adjustment step (seconds)
+CALL_LENGTH_START = 7 * 60
+CALL_INTERVAL_START = 45
+STEP = 15
 
 FONT_SIZE = 22
+
+QUEUE_PERSON_SIZE = 14
+QUEUE_MAX_PER_ROW = 60
+
+SIM_RATE_START = 20
+SIM_RATE_MIN = 1
 
 # -----------------------------
 # Operator Class
@@ -28,9 +34,9 @@ class Operator:
         self.busy = True
         self.time_remaining = duration
 
-    def update(self, dt):
+    def update(self, sim_dt):
         if self.busy:
-            self.time_remaining -= dt
+            self.time_remaining -= sim_dt
             if self.time_remaining <= 0:
                 self.busy = False
                 self.time_remaining = 0
@@ -55,13 +61,18 @@ avg_call_length = CALL_LENGTH_START
 call_interval = CALL_INTERVAL_START
 
 time_since_last_call = 0
+sim_time = 0
+running_sim = False
+
+sim_rate = SIM_RATE_START
+
+start_button = pygame.Rect(520, 320, 160, 60)
 
 # -----------------------------
 # Helper Functions
 # -----------------------------
-def draw_text(text, x, y):
-    surface = font.render(text, True, (255, 255, 255))
-    screen.blit(surface, (x, y))
+def draw_text(text, x, y, color=(255, 255, 255)):
+    screen.blit(font.render(text, True, color), (x, y))
 
 
 def format_time(seconds):
@@ -75,8 +86,8 @@ def format_time(seconds):
 # -----------------------------
 running = True
 while running:
-    dt = clock.tick(FPS) / 1000  # seconds since last frame
-    time_since_last_call += dt
+    wall_dt = clock.tick(FPS) / 1000
+    sim_dt = wall_dt * sim_rate
 
     # -------------------------
     # Events
@@ -101,66 +112,91 @@ while running:
             elif event.key == pygame.K_LEFT:
                 call_interval = max(STEP, call_interval - STEP)
 
-    # -------------------------
-    # Generate Calls
-    # -------------------------
-    if time_since_last_call >= call_interval:
-        time_since_last_call = 0
+            elif event.key == pygame.K_w:
+                sim_rate += 1
 
-        # Slight randomness around average
-        duration = random.uniform(
-            avg_call_length * 0.8,
-            avg_call_length * 1.2
-        )
-        call_queue.append(duration)
+            elif event.key == pygame.K_s:
+                sim_rate = max(SIM_RATE_MIN, sim_rate - 1)
 
-    # -------------------------
-    # Assign Calls
-    # -------------------------
-    for operator in operators:
-        if not operator.busy and call_queue:
-            call_duration = call_queue.pop(0)
-            operator.assign_call(call_duration)
+        elif event.type == pygame.MOUSEBUTTONDOWN and not running_sim:
+            if start_button.collidepoint(event.pos):
+                running_sim = True
+                sim_time = 0
+                time_since_last_call = 0
 
     # -------------------------
-    # Update Operators
+    # Simulation Logic
     # -------------------------
-    for operator in operators:
-        operator.update(dt)
+    if running_sim:
+        sim_time += sim_dt
+        time_since_last_call += sim_dt
+
+        # Generate Calls
+        if time_since_last_call >= call_interval:
+            time_since_last_call = 0
+            call_queue.append({
+                "duration": random.uniform(avg_call_length * 0.8, avg_call_length * 1.2),
+                "enqueue_time": sim_time
+            })
+
+        # Assign Calls (respect minimum queue time)
+        for operator in operators:
+            if not operator.busy:
+                for call in call_queue:
+                    if sim_time - call["enqueue_time"] >= MIN_QUEUE_TIME:
+                        operator.assign_call(call["duration"])
+                        call_queue.remove(call)
+                        break
+
+        # Update Operators
+        for operator in operators:
+            operator.update(sim_dt)
 
     # -------------------------
     # Drawing
     # -------------------------
-    screen.fill((30, 30, 30))
-
-    busy_ops = sum(1 for o in operators if o.busy)
-    free_ops = NUM_OPERATORS - busy_ops
+    screen.fill((25, 25, 25))
 
     draw_text("911 CALL CENTER SIMULATION", 20, 20)
-    draw_text(f"Operators: {NUM_OPERATORS}", 20, 60)
-    draw_text(f"Busy: {busy_ops}", 20, 90)
-    draw_text(f"Free: {free_ops}", 20, 120)
-    draw_text(f"Calls Waiting in Queue: {len(call_queue)}", 20, 150)
+    draw_text(f"Simulation Time: {format_time(sim_time)}", 20, 60)
+    draw_text(f"Simulation Rate: {sim_rate}x (W / S)", 20, 90)
 
-    draw_text(
-        f"Avg Call Length: {format_time(avg_call_length)}  (↑ / ↓)",
-        20, 200
-    )
-    draw_text(
-        f"Call Arrival Interval: {call_interval}s  (← / →)",
-        20, 230
-    )
+    draw_text(f"Avg Call Length: {format_time(avg_call_length)} (↑ / ↓)", 20, 130)
+    draw_text(f"Call Interval: {call_interval}s (← / →)", 20, 160)
+    draw_text(f"Calls Waiting: {len(call_queue)}", 20, 190)
 
-    # Operator status visualization
+    # Start Button
+    if not running_sim:
+        pygame.draw.rect(screen, (50, 180, 50), start_button)
+        draw_text("START", start_button.x + 45, start_button.y + 18)
+
+    # -------------------------
+    # Queue Visualization
+    # -------------------------
+    base_x, base_y = 20, 240
+    for i, _ in enumerate(call_queue):
+        row = i // QUEUE_MAX_PER_ROW
+        col = i % QUEUE_MAX_PER_ROW
+        x = base_x + col * (QUEUE_PERSON_SIZE + 2)
+        y = base_y + row * (QUEUE_PERSON_SIZE + 6)
+
+        pygame.draw.rect(
+            screen,
+            (200, 200, 50),
+            (x, y, QUEUE_PERSON_SIZE, QUEUE_PERSON_SIZE)
+        )
+
+    draw_text("Incoming Call Queue", base_x, base_y - 25)
+
+    # -------------------------
+    # Operators
+    # -------------------------
     for i, operator in enumerate(operators):
-        x = 20 + (i % 10) * 90
-        y = 300 + (i // 10) * 80
-
+        x = 20 + (i % 10) * 100
+        y = 420 + (i // 10) * 100
         color = (200, 50, 50) if operator.busy else (50, 200, 50)
-        pygame.draw.rect(screen, color, (x, y, 70, 40))
-
-        label = f"O{i+1}"
-        draw_text(label, x + 10, y + 10)
+        pygame.draw.rect(screen, color, (x, y, 80, 45))
+        draw_text(f"O{i+1}", x + 20, y + 12)
 
     pygame.display.flip()
 
