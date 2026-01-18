@@ -5,10 +5,15 @@ import re
 import json
 import gc
 import subprocess
+from src import node__initial_triage as node__initial_triage
 
 from pathlib import Path
 
 audio_path = "out/recorded_audio.wav"
+
+# TODO
+# have location check for street number followed by a string.
+# refactor so that the initial triage node then leads into more detailed node
 
 conversation_state = {
     "name": None,
@@ -101,26 +106,8 @@ def text_to_speech(text, out_dir):
     with open(f"{out_dir}/operator_voice.txt", "w", encoding="utf-8") as f:
         f.write(text)
 
-def is_vague_emergency(description):
-    if not description:
-        return True
-    vague_terms = ["Not Provided", "None", "help", "emergency", "problem", "issue", "situation"]
-    return description.strip().lower() in vague_terms
 
-#Apartment / unit number
-#Cross streets
-#City / town
-#“Are you inside or outside?”
-#“Is that correct?” (confirmation)
-def is_vague_location(loc):
-    if not loc:
-        return True
-    vague_terms = [
-        "Not Provided", "None",
-        "somewhere", "around", "maybe", "not sure", "i don't know", 
-        "don't know", "unknown", "lost", "nearby", "far away", "an island"
-    ]
-    return any(term in loc.lower() for term in vague_terms)
+
 
 def format_emergency(emergency):
     if not emergency or emergency.lower() in ["yes", "no", "true", "false", "help", "emergency"]:
@@ -206,25 +193,25 @@ def operator_main():
                 new_value = extracted.get(key)
 
                 if key == "emergency":
-                    if (not conversation_state[key]) or is_vague_emergency(conversation_state[key]):
-                        if new_value and not is_vague_emergency(new_value):
+                    if (not conversation_state[key]) or node__initial_triage.is_vague_emergency(conversation_state[key]):
+                        if new_value and not node__initial_triage.is_vague_emergency(new_value):
                             conversation_state[key] = new_value
 
                 elif key == "location":
-                    if (not conversation_state[key]) or is_vague_location(conversation_state[key]):
-                        if new_value and not is_vague_location(new_value):
+                    if (not conversation_state[key]) or node__initial_triage.is_vague_location(conversation_state[key]):
+                        if new_value and not node__initial_triage.is_vague_location(new_value):
                             conversation_state[key] = new_value
 
                 elif not conversation_state[key] and new_value:
                     conversation_state[key] = new_value
 
             # Re-check location vagueness
-            if conversation_state["location"] and is_vague_location(conversation_state["location"]):
+            if conversation_state["location"] and node__initial_triage.is_vague_location(conversation_state["location"]):
                 outgoing_message = "Can you be more specific about your location? Any nearby landmarks or street names?"
                 text_to_speech(outgoing_message, out_dir)
                 continue
 
-            if conversation_state["emergency"] and is_vague_emergency(conversation_state["emergency"]):
+            if conversation_state["emergency"] and node__initial_triage.is_vague_emergency(conversation_state["emergency"]):
                 # print (f'DEBUG {conversation_state["emergency"]}')
                 outgoing_message = "Can you briefly describe what the emergency is?"
                 text_to_speech(outgoing_message, out_dir)
