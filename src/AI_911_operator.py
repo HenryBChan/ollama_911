@@ -6,7 +6,7 @@ import json
 import gc
 import subprocess
 from src import node__initial_triage as node__initial_triage
-
+from src import prompts as prompts
 from pathlib import Path
 
 audio_path = "out/recorded_audio.wav"
@@ -14,12 +14,6 @@ audio_path = "out/recorded_audio.wav"
 # TODO
 # have location check for street number followed by a string.
 # refactor so that the initial triage node then leads into more detailed node
-
-conversation_state = {
-    "name": None,
-    "location": None,
-    "emergency": None
-}
 
 # Load Whisper model (choose"tiny", "base", "small", "medium", or "large")
 model = whisper.load_model("small")  # Adjust based on speed vs accuracy
@@ -35,21 +29,15 @@ def clean_llm_output(text: str) -> str:
 
     return text.strip()
 
-def query_llm(user_message, current_state):
+def query_llm(user_message, current_state, prompt_body):
     # HARD truncate user input (critical)
     user_message = user_message[:500]
 
     # Keep prompt extremely small
     prompt = (
-        "Extract name, location, and emergency.\n"
-
-        "Emergency should be a short description of what help is needed (e.g., 'broken leg', 'house fire', 'car accident'.\n"
-        "Only include values that were clearly and explicitly stated by the user.\n"
-        "Return ONLY valid JSON:\n"
-        "DO NOT guess or infer names like 'user', 'drowning user', or similar.\n"
-        '{"name": null, "location": null, "emergency": null}\n'
-        f'Text: "{user_message}"\n'
-        "JSON:"
+        prompt_body
+        + f'Text: "{user_message}"\n'
+        + "JSON:"
     )
 
     try:
@@ -91,10 +79,12 @@ def query_llm(user_message, current_state):
 
         parsed = json.loads(match.group(0))
 
+        schema_line = prompt_body.strip().splitlines()[-1]
+        keys = json.loads(schema_line).keys()
+
         return {
-            "name": parsed.get("name", current_state["name"]),
-            "location": parsed.get("location", current_state["location"]),
-            "emergency": parsed.get("emergency", current_state["emergency"])
+            key: parsed.get(key, current_state.get(key))
+            for key in keys
         }
 
     except Exception:
@@ -106,39 +96,6 @@ def text_to_speech(text, out_dir):
     with open(f"{out_dir}/operator_voice.txt", "w", encoding="utf-8") as f:
         f.write(text)
 
-
-
-
-def format_emergency(emergency):
-    if not emergency or emergency.lower() in ["yes", "no", "true", "false", "help", "emergency"]:
-        return "unspecified emergency"
-
-    # Basic cleanup
-    emergency_clean = re.sub(r"\b(my|i have|i’m|i am|the)\b", "", emergency, flags=re.IGNORECASE).strip()
-    emergency_clean = emergency_clean[0].lower() + emergency_clean[1:]
-
-    if "fire" in emergency_clean:
-        if "house" in emergency_clean:
-            return "house fire emergency"
-        return f"{emergency_clean} emergency"
-    elif any(word in emergency_clean for word in ["broken", "neck", "injury", "hurt", "bleeding", "cut", "pain"]):
-        return f"{emergency_clean} emergency"
-    else:
-        return f"{emergency_clean} emergency"
-    
-def next_question():
-    if not conversation_state["name"]:
-        return "Can I have your name, please?"
-    elif not conversation_state["location"]:
-        return "What is the address of your emergency?"
-    elif not conversation_state["emergency"]:
-        return "What is the emergency?"
-    else:
-        name = conversation_state["name"] or "unknown"
-        location = conversation_state["location"] or "unspecified location"
-        emergency = format_emergency(conversation_state["emergency"])
-
-        return f"{name}, we received your {emergency} at {location}. Help is on the way."
     
 def dispatch_services(state):
     """
@@ -178,7 +135,8 @@ def operator_main():
         time.sleep(0.5)
     
     prev_size = -1
-
+    conversation_state = node__initial_triage.conversation_state
+    
     while not all(conversation_state.values()):
         current_size = os.path.getsize(wav_path)
         if current_size != prev_size:
@@ -186,7 +144,7 @@ def operator_main():
             text =  result["text"].strip()
             print (f"Trascribed text : {text}")
 
-            extracted = query_llm(text, conversation_state)
+            extracted = query_llm(text, conversation_state, prompts.INITIAL_TRIAGE)
            
             # try to find key words to figure out the situation
             for key in conversation_state:
@@ -217,7 +175,7 @@ def operator_main():
                 text_to_speech(outgoing_message, out_dir)
                 continue
             
-            prompt = next_question()
+            prompt = node__initial_triage.next_question(conversation_state)
             text_to_speech(prompt, out_dir)
 
         if all(conversation_state.values()):
