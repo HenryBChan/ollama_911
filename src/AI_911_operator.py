@@ -4,6 +4,8 @@ import time
 from src import node__initial_triage as node__initial_triage
 from src import prompts as prompts
 from src import llm_utils as llm_utils
+from typing import TypedDict, Optional
+from langgraph.graph import StateGraph, END
 
 audio_path = "out/recorded_audio.wav"
 
@@ -12,10 +14,28 @@ audio_path = "out/recorded_audio.wav"
 # refactor so that the initial triage node then leads into more detailed node
 
 # Load Whisper model (choose"tiny", "base", "small", "medium", or "large")
+
+# -------------------------
+# State
+# -------------------------
+class State(TypedDict):
+    triage: Optional[str]
+    
 model = whisper.load_model("small")  # Adjust based on speed vs accuracy
+
+# -------------------------
+# Helper
+# -------------------------
+# def llm_is_valid(prompt: str) -> bool:
+#     response = llm.invoke(prompt).strip().upper()
+#     return response.startswith("YES")
+
+
 
 out_dir = "out"
 wav_path = os.path.join(out_dir, "recorded_audio.wav")
+
+
 
 def operator_main():
 
