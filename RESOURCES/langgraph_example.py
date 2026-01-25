@@ -14,96 +14,115 @@ llm = Ollama(model="mistral", temperature=0)
 # State
 # -------------------------
 class State(TypedDict):
-    fruit: Optional[str]
-    color: Optional[str]
-    animal: Optional[str]
+    name: Optional[str]
+    location: Optional[str]
+    emergency_type: Optional[str]
 
 
 # -------------------------
 # Helper
 # -------------------------
-def llm_is_valid(prompt: str) -> bool:
+def llm_is_valid_emergency_type(value: str) -> bool:
+    prompt = f"""
+Is "{value}" one of these emergency types: fire, police, or ems?
+Answer with ONLY 'YES' or 'NO'.
+"""
     response = llm.invoke(prompt).strip().upper()
     return response.startswith("YES")
 
 
 # -------------------------
-# Fruit Node
+# Intake Node (replaces fruit_node)
 # -------------------------
-def fruit_node(state: State) -> State:
+def intake_node(state: State) -> State:
+    print("📞 911 Intake\n")
+
+    # Name
+    name = input("What is your name? ").strip()
+
+    # Location
+    location = input("What is the emergency location? ").strip()
+
+    # Emergency type (validated by LLM)
     while True:
-        user_input = input("🍎 Enter a fruit: ").strip().lower()
+        emergency_type = input("Is this Fire, Police, or EMS? ").strip().lower()
 
-        prompt = f"""
-Is "{user_input}" a fruit?
-Answer with ONLY 'YES' or 'NO'.
-"""
-        if llm_is_valid(prompt):
-            print(f"✅ '{user_input}' confirmed as a fruit.\n")
-            return {
-                "fruit": user_input,
-                "color": state.get("color"),
-                "animal": state.get("animal"),
-            }
+        if llm_is_valid_emergency_type(emergency_type):
+            print(f"✅ Emergency type confirmed: {emergency_type}\n")
+            break
         else:
-            print(f"❌ '{user_input}' is not a fruit. Try again.\n")
+            print("❌ Please enter one of: Fire, Police, or EMS.\n")
+
+    return {
+        "name": name,
+        "location": location,
+        "emergency_type": emergency_type,
+    }
 
 
 # -------------------------
-# Routing after Fruit
+# Routing after Intake
 # -------------------------
-def route_after_fruit(state: State) -> str:
-    fruit = (state.get("fruit") or "").lower()
+def route_after_intake(state: State) -> str:
+    etype = (state.get("emergency_type") or "").lower()
 
-    if fruit == "orange":
-        return "color"
+    if etype == "fire":
+        return "fire"
+    elif etype == "police":
+        return "police"
+    elif etype == "ems":
+        return "ems"
     else:
-        # apple and everything else goes to animal
-        return "animal"
+        # Fallback safety
+        return "police"
 
 
 # -------------------------
-# Color Node
+# Fire Node
 # -------------------------
-def color_node(state: State) -> State:
-    while True:
-        user_input = input("🎨 Enter a color: ").strip().lower()
+def fire_node(state: State) -> State:
+    print("🔥 FIRE DISPATCH\n")
+    print(f"Caller:   {state['name']}")
+    print(f"Location: {state['location']}\n")
 
-        prompt = f"""
-Is "{user_input}" a color?
-Answer with ONLY 'YES' or 'NO'.
-"""
-        if llm_is_valid(prompt):
-            print(f"✅ '{user_input}' confirmed as a color.\n")
-            return {
-                "fruit": state.get("fruit"),
-                "color": user_input,
-                "animal": state.get("animal"),
-            }
-        else:
-            print(f"❌ '{user_input}' is not a color. Try again.\n")
+    details = input("What is on fire? (house, car, bush, etc): ").strip()
+
+    print("\n🚒 Fire details recorded.")
+    print(f"Fire type: {details}\n")
+
+    return state
 
 
 # -------------------------
-# Animal Node
+# Police Node
 # -------------------------
-def animal_node(state: State) -> State:
-    while True:
-        user_input = input("🐶 Enter an animal: ").strip().lower()
+def police_node(state: State) -> State:
+    print("🚓 POLICE DISPATCH\n")
+    print(f"Caller:   {state['name']}")
+    print(f"Location: {state['location']}\n")
 
-        prompt = f"""
-Is "{user_input}" an animal?
-Answer with ONLY 'YES' or 'NO'.
-"""
-        if llm_is_valid(prompt):
-            print(f"✅ '{user_input}' confirmed as an animal.\n")
-            return {
-                "fruit": state.get("fruit"),
-                "color": state.get("color"),
-                "animal": user_input,
-            }
-        else:
-            print(f"❌ '{user_input}' is not an animal. Try again.\n")
+    details = input("What is happening? (theft, assault, suspicious, etc): ").strip()
+
+    print("\n👮 Police details recorded.")
+    print(f"Incident: {details}\n")
+
+    return state
+
+
+# -------------------------
+# EMS Node
+# -------------------------
+def ems_node(state: State) -> State:
+    print("🚑 EMS DISPATCH\n")
+    print(f"Caller:   {state['name']}")
+    print(f"Location: {state['location']}\n")
+
+    details = input("What is the medical emergency? ").strip()
+
+    print("\n🩺 EMS details recorded.")
+    print(f"Medical issue: {details}\n")
+
+    return state
 
 
 # -------------------------
@@ -111,26 +130,26 @@ Answer with ONLY 'YES' or 'NO'.
 # -------------------------
 builder = StateGraph(State)
 
-builder.add_node("fruit", fruit_node)
-builder.add_node("color", color_node)
-builder.add_node("animal", animal_node)
+builder.add_node("intake", intake_node)
+builder.add_node("fire", fire_node)
+builder.add_node("police", police_node)
+builder.add_node("ems", ems_node)
 
-builder.set_entry_point("fruit")
+builder.set_entry_point("intake")
 
-# Conditional routing based on fruit value
 builder.add_conditional_edges(
-    "fruit",
-    route_after_fruit,
+    "intake",
+    route_after_intake,
     {
-        "color": "color",
-        "animal": "animal",
+        "fire": "fire",
+        "police": "police",
+        "ems": "ems",
     },
 )
 
-# After color, always go to animal
-builder.add_edge("color", "animal")
-
-builder.add_edge("animal", END)
+builder.add_edge("fire", END)
+builder.add_edge("police", END)
+builder.add_edge("ems", END)
 
 graph = builder.compile()
 
@@ -139,9 +158,11 @@ graph = builder.compile()
 # Run
 # -------------------------
 if __name__ == "__main__":
-    final_state = graph.invoke({"fruit": None, "color": None, "animal": None})
+    final_state = graph.invoke({
+        "name": None,
+        "location": None,
+        "emergency_type": None,
+    })
 
-    print("🎉 Done!")
-    print(f"Fruit:  {final_state['fruit']}")
-    print(f"Color:  {final_state['color']}")
-    print(f"Animal: {final_state['animal']}")
+    print("📋 Final Call Summary")
+    print(final_state)
