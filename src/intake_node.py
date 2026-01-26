@@ -5,11 +5,7 @@ from src import prompts as prompts
 import time
 from pathlib import Path
 
-conversation_state = {
-    "name": None,
-    "location": None,
-    "emergency": None
-}
+
 
 def is_vague_emergency(description):
     if not description:
@@ -63,8 +59,18 @@ def next_question(conversation_state):
 
         return f"{name}, we received your {emergency} at {location}. Help is on the way."
     
-def initial_triage_conversation(conversation_state, wav_path, model, audio_path, out_dir):
+def intake_node(state, wav_path, model, audio_path, out_dir):
     prev_size = -1
+
+    conversation_state = {
+        "name": None,
+        "location": None,
+        "emergency": None
+    }
+
+    # Wait for a recorded audio file to appear
+    while not os.path.exists(wav_path):
+        time.sleep(0.5)
 
     while not all(conversation_state.values()):
         current_size = os.path.getsize(wav_path)
@@ -121,6 +127,12 @@ def initial_triage_conversation(conversation_state, wav_path, model, audio_path,
 
         prev_size = current_size
         time.sleep(0.5)
+
+    return {
+        "name": conversation_state["name"],
+        "location": conversation_state["location"],
+        "emergency_type": conversation_state["emergency"],
+    }
 
 def dispatch_services(state):
     """

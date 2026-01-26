@@ -1,7 +1,10 @@
 import whisper
 import os
 import time
-from src import node__initial_triage as node__initial_triage
+from functools import partial
+# from src import node__initial_triage as intake_node
+from src.intake_node import intake_node
+
 from src import prompts as prompts
 from src import llm_utils as llm_utils
 from typing import TypedDict, Optional
@@ -19,7 +22,9 @@ audio_path = "out/recorded_audio.wav"
 # State
 # -------------------------
 class State(TypedDict):
-    triage: Optional[str]
+    name: Optional[str]
+    location: Optional[str]
+    emergency_type: Optional[str]
     
 model = whisper.load_model("small")  # Adjust based on speed vs accuracy
 
@@ -35,19 +40,46 @@ model = whisper.load_model("small")  # Adjust based on speed vs accuracy
 out_dir = "out"
 wav_path = os.path.join(out_dir, "recorded_audio.wav")
 
+intake_with_deps = partial(
+    intake_node,
+    wav_path=wav_path,
+    model=model,
+    audio_path=audio_path,
+    out_dir=out_dir,
+)
 
+# -------------------------
+# Build Graph
+# -------------------------
+def build_graph():
+    builder = StateGraph(State)
+
+    builder.add_node("intake", intake_with_deps)
+
+    builder.set_entry_point("intake")
+
+    builder.add_edge("intake", END)
+
+    return builder.compile()
 
 def operator_main():
 
     llm_utils.text_to_speech("9 1 1 what's your emergency?", out_dir)
     
-    # Wait for a recorded audio file to appear
-    while not os.path.exists(wav_path):
-        time.sleep(0.5)
+    graph = build_graph()
+
+    final_state = graph.invoke({
+        "name": None,
+        "location": None,
+        "emergency_type": None,
+    })
+
+    print("📋 Final Call Summary")
+    print(final_state)
     
 
-    conversation_state = node__initial_triage.conversation_state
-    node__initial_triage.initial_triage_conversation(conversation_state, wav_path, model, audio_path, out_dir)
+    # conversation_state = node__initial_triage.conversation_state
+    # node__initial_triage.initial_triage_conversation(conversation_state, wav_path, model, audio_path, out_dir)
 
 if __name__ == "__main__":
     operator_main()

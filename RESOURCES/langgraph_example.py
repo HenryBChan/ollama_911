@@ -128,36 +128,38 @@ def ems_node(state: State) -> State:
 # -------------------------
 # Build Graph
 # -------------------------
-builder = StateGraph(State)
+def build_graph():
+    builder = StateGraph(State)
 
-builder.add_node("intake", intake_node)
-builder.add_node("fire", fire_node)
-builder.add_node("police", police_node)
-builder.add_node("ems", ems_node)
+    builder.add_node("intake", intake_node)
+    builder.add_node("fire", fire_node)
+    builder.add_node("police", police_node)
+    builder.add_node("ems", ems_node)
 
-builder.set_entry_point("intake")
+    builder.set_entry_point("intake")
 
-builder.add_conditional_edges(
-    "intake",
-    route_after_intake,
-    {
-        "fire": "fire",
-        "police": "police",
-        "ems": "ems",
-    },
-)
+    builder.add_conditional_edges(
+        "intake",
+        route_after_intake,
+        {
+            "fire": "fire",
+            "police": "police",
+            "ems": "ems",
+        },
+    )
 
-builder.add_edge("fire", END)
-builder.add_edge("police", END)
-builder.add_edge("ems", END)
+    builder.add_edge("fire", END)
+    builder.add_edge("police", END)
+    builder.add_edge("ems", END)
 
-graph = builder.compile()
-
+    return builder.compile()
 
 # -------------------------
 # Run
 # -------------------------
 if __name__ == "__main__":
+    graph = build_graph()
+
     final_state = graph.invoke({
         "name": None,
         "location": None,
