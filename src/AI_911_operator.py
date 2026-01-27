@@ -2,9 +2,10 @@ import whisper
 import os
 import time
 from functools import partial
-# from src import node__initial_triage as intake_node
-from src.intake_node import intake_node
-
+from src.nodes.police_node import police_node
+from src.nodes.intake_node import intake_node
+from src.nodes.fire_node import fire_node
+from src.nodes.EMS_Node import ems_node
 from src import prompts as prompts
 from src import llm_utils as llm_utils
 from typing import TypedDict, Optional
@@ -19,27 +20,38 @@ audio_path = "out/recorded_audio.wav"
 # Load Whisper model (choose"tiny", "base", "small", "medium", or "large")
 
 # -------------------------
+# Routing after Intake
+# -------------------------
+def route_after_intake(state):
+    etype = (state.get("emergency_type") or "").lower()
+
+    if etype == "fire":
+        return "fire"
+    elif etype == "police":
+        return "police"
+    elif etype == "ems":
+        return "ems"
+    else:
+        # Fallback safety
+        return "police"
+    
+# -------------------------
 # State
 # -------------------------
+out_dir = "out"
+wav_path = os.path.join(out_dir, "recorded_audio.wav")
+model = whisper.load_model("small")  # Adjust based on speed vs accuracy
+
 class State(TypedDict):
     name: Optional[str]
     location: Optional[str]
     emergency_type: Optional[str]
+
+    # Branch-specific
+    fire_details: Optional[str]
+    police_details: Optional[str]
+    ems_details: Optional[str]
     
-model = whisper.load_model("small")  # Adjust based on speed vs accuracy
-
-# -------------------------
-# Helper
-# -------------------------
-# def llm_is_valid(prompt: str) -> bool:
-#     response = llm.invoke(prompt).strip().upper()
-#     return response.startswith("YES")
-
-
-
-out_dir = "out"
-wav_path = os.path.join(out_dir, "recorded_audio.wav")
-
 intake_with_deps = partial(
     intake_node,
     wav_path=wav_path,
@@ -48,6 +60,10 @@ intake_with_deps = partial(
     out_dir=out_dir,
 )
 
+police_with_deps = partial(
+    police_node,
+    out_dir=out_dir,
+)
 # -------------------------
 # Build Graph
 # -------------------------
@@ -55,11 +71,25 @@ def build_graph():
     builder = StateGraph(State)
 
     builder.add_node("intake", intake_with_deps)
+    builder.add_node("fire", fire_node)
+    builder.add_node("police", police_with_deps)
+    builder.add_node("ems", ems_node)
 
     builder.set_entry_point("intake")
 
-    builder.add_edge("intake", END)
+    builder.add_conditional_edges(
+        "intake",
+        route_after_intake,
+        {
+            "fire": "fire",
+            "police": "police",
+            "ems": "ems",
+        },
+    )
 
+    builder.add_edge("fire", END)
+    builder.add_edge("police", END)
+    builder.add_edge("ems", END)
     return builder.compile()
 
 def operator_main():
