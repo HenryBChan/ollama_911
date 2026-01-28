@@ -149,7 +149,10 @@ def dispatch_services(state):
     if any(term in emergency for term in ["fire", "smoke", "burning", "explosion"]):
         services.add("Fire Department")
 
-    if any(term in emergency for term in ["shooting", "robbery", "assault", "theft", "violence", "gun", "knife", "threat"]):
+    if any(term in emergency for term in ["shooting"]):
+        services.add("Police__shooting")
+        
+    if any(term in emergency for term in ["robbery", "assault", "theft", "violence", "gun", "knife", "threat"]):
         services.add("Police")
 
     if any(term in emergency for term in ["chemical", "hazmat", "toxic", "radiation", "spill", "gas leak"]):

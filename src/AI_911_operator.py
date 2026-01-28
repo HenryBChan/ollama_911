@@ -2,7 +2,7 @@ import whisper
 import os
 import time
 from functools import partial
-from src.nodes.police_node import police_node
+from src.nodes.police_node__shooting import police_node__shooting
 from src.nodes.intake_node import intake_node
 from src.nodes.fire_node import fire_node
 from src.nodes.EMS_Node import ems_node
@@ -27,6 +27,8 @@ def route_after_intake(state):
 
     if etype == "fire":
         return "fire"
+    elif etype == "shooting":
+        return "police__shooting"
     elif etype == "police":
         return "police"
     elif etype == "ems":
@@ -49,7 +51,9 @@ class State(TypedDict):
 
     # Branch-specific
     fire_details: Optional[str]
-    police_details: Optional[str]
+    police_details__shooting__are_you_safe: Optional[str]
+    police_details__shooting__is_gunman_active: Optional[str]
+    police_details__shooting__description_of_weapon: Optional[str]
     ems_details: Optional[str]
     
 intake_with_deps = partial(
@@ -60,8 +64,8 @@ intake_with_deps = partial(
     out_dir=out_dir,
 )
 
-police_with_deps = partial(
-    police_node,
+police_node__shooting_with_deps = partial(
+    police_node__shooting,
     out_dir=out_dir,
 )
 # -------------------------
@@ -70,26 +74,26 @@ police_with_deps = partial(
 def build_graph():
     builder = StateGraph(State)
 
-    builder.add_node("intake", intake_with_deps)
-    builder.add_node("fire", fire_node)
-    builder.add_node("police", police_with_deps)
-    builder.add_node("ems", ems_node)
+    builder.add_node("intake_node", intake_with_deps)
+    builder.add_node("fire_node", fire_node)
+    builder.add_node("police_node__shooting", police_node__shooting_with_deps)
+    builder.add_node("ems_node", ems_node)
 
-    builder.set_entry_point("intake")
+    builder.set_entry_point("intake_node")
 
     builder.add_conditional_edges(
-        "intake",
+        "intake_node",
         route_after_intake,
         {
-            "fire": "fire",
-            "police": "police",
-            "ems": "ems",
+            "fire": "fire_node",
+            "police__shooting": "police_node__shooting",
+            "ems": "ems_node",
         },
     )
 
-    builder.add_edge("fire", END)
-    builder.add_edge("police", END)
-    builder.add_edge("ems", END)
+    builder.add_edge("fire_node", END)
+    builder.add_edge("police_node__shooting", END)
+    builder.add_edge("ems_node", END)
     return builder.compile()
 
 def operator_main():
@@ -102,6 +106,9 @@ def operator_main():
         "name": None,
         "location": None,
         "emergency_type": None,
+        "police_details__shooting__are_you_safe": None,
+        "police_details__shooting__is_gunman_active": None,
+        "police_details__shooting__description_of_weapon": None,
     })
 
     print("📋 Final Call Summary")
