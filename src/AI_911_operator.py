@@ -66,6 +66,9 @@ intake_with_deps = partial(
 
 police_node__shooting_with_deps = partial(
     police_node__shooting,
+    wav_path=wav_path,
+    model=model,
+    audio_path=audio_path,
     out_dir=out_dir,
 )
 # -------------------------

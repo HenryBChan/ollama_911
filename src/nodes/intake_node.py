@@ -3,7 +3,7 @@ import os
 from src import llm_utils as llm_utils
 from src import prompts as prompts 
 import time
-from pathlib import Path
+
 
 
 
@@ -81,10 +81,10 @@ def intake_node(state, wav_path, model, audio_path, out_dir):
 
             extracted = llm_utils.query_llm(text, conversation_state, prompts.INITIAL_TRIAGE)
            
-            # try to find key words to figure out the situation
+           # try to find key words to figure out the situation
             for key in conversation_state:
                 new_value = extracted.get(key)
-
+ 
                 if key == "emergency":
                     if (not conversation_state[key]) or is_vague_emergency(conversation_state[key]):
                         if new_value and not is_vague_emergency(new_value):
@@ -117,12 +117,12 @@ def intake_node(state, wav_path, model, audio_path, out_dir):
             services = dispatch_services(conversation_state)
             print(f"🚨 Dispatching: {', '.join(services)}")
 
-            # Define the file path
-            path = Path("out") / "close.gui"
-            # Make sure the directory exists
-            path.parent.mkdir(parents=True, exist_ok=True)
-            # Create the blank file (or update its timestamp if it already exists)
-            path.touch(exist_ok=True)
+            # # Define the file path
+            # path = Path("out") / "close.gui"
+            # # Make sure the directory exists
+            # path.parent.mkdir(parents=True, exist_ok=True)
+            # # Create the blank file (or update its timestamp if it already exists)
+            # path.touch(exist_ok=True)
             break
 
         prev_size = current_size
