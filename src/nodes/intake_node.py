@@ -3,13 +3,9 @@ import os
 from src import llm_utils as llm_utils
 from src import prompts as prompts 
 import time
-from pathlib import Path
 
-conversation_state = {
-    "name": None,
-    "location": None,
-    "emergency": None
-}
+
+
 
 def is_vague_emergency(description):
     if not description:
@@ -63,8 +59,18 @@ def next_question(conversation_state):
 
         return f"{name}, we received your {emergency} at {location}. Help is on the way."
     
-def initial_triage_conversation(conversation_state, wav_path, model, audio_path, out_dir):
+def intake_node(state, wav_path, model, audio_path, out_dir):
     prev_size = -1
+
+    conversation_state = {
+        "name": None,
+        "location": None,
+        "emergency": None
+    }
+
+    # Wait for a recorded audio file to appear
+    while not os.path.exists(wav_path):
+        time.sleep(0.5)
 
     while not all(conversation_state.values()):
         current_size = os.path.getsize(wav_path)
@@ -75,10 +81,10 @@ def initial_triage_conversation(conversation_state, wav_path, model, audio_path,
 
             extracted = llm_utils.query_llm(text, conversation_state, prompts.INITIAL_TRIAGE)
            
-            # try to find key words to figure out the situation
+           # try to find key words to figure out the situation
             for key in conversation_state:
                 new_value = extracted.get(key)
-
+ 
                 if key == "emergency":
                     if (not conversation_state[key]) or is_vague_emergency(conversation_state[key]):
                         if new_value and not is_vague_emergency(new_value):
@@ -111,16 +117,24 @@ def initial_triage_conversation(conversation_state, wav_path, model, audio_path,
             services = dispatch_services(conversation_state)
             print(f"🚨 Dispatching: {', '.join(services)}")
 
-            # Define the file path
-            path = Path("out") / "close.gui"
-            # Make sure the directory exists
-            path.parent.mkdir(parents=True, exist_ok=True)
-            # Create the blank file (or update its timestamp if it already exists)
-            path.touch(exist_ok=True)
+            os.remove(wav_path)
+
+            # # Define the file path
+            # path = Path("out") / "close.gui"
+            # # Make sure the directory exists
+            # path.parent.mkdir(parents=True, exist_ok=True)
+            # # Create the blank file (or update its timestamp if it already exists)
+            # path.touch(exist_ok=True)
             break
 
         prev_size = current_size
         time.sleep(0.5)
+
+    return {
+        "name": conversation_state["name"],
+        "location": conversation_state["location"],
+        "emergency_type": conversation_state["emergency"],
+    }
 
 def dispatch_services(state):
     """
@@ -137,7 +151,10 @@ def dispatch_services(state):
     if any(term in emergency for term in ["fire", "smoke", "burning", "explosion"]):
         services.add("Fire Department")
 
-    if any(term in emergency for term in ["shooting", "robbery", "assault", "theft", "violence", "gun", "knife", "threat"]):
+    if any(term in emergency for term in ["shooting"]):
+        services.add("Police__shooting")
+        
+    if any(term in emergency for term in ["robbery", "assault", "theft", "violence", "gun", "knife", "threat"]):
         services.add("Police")
 
     if any(term in emergency for term in ["chemical", "hazmat", "toxic", "radiation", "spill", "gas leak"]):

@@ -2,6 +2,7 @@ import subprocess
 import json
 import re
 import gc
+from typing import Optional
 
 def clean_llm_output(text: str) -> str:
     ANSI_ESCAPE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
@@ -80,3 +81,12 @@ def text_to_speech(text, out_dir):
     print(f"Operator Response: {text}")
     with open(f"{out_dir}/operator_voice.txt", "w", encoding="utf-8") as f:
         f.write(text)
+
+
+def detect_yes_no(text):
+    if isinstance(text, bool):
+        return True
+    if not isinstance(text, str):
+        return False
+    text = text.lower().strip()
+    return text in ("yes", "no")

@@ -8,4 +8,35 @@ INITIAL_TRIAGE = (
     '{"name": null, "location": null, "emergency": null}\n' 
 )
 
+TRIAGE_POLICE_SHOOTING = (
+    "You are an emergency triage classifier.\n"
+    "Analyze the user-provided text describing a possible shooting situation.\n"
+
+    "Determine the following, based ONLY on what is clearly and explicitly stated "
+    "in the CURRENT user message:\n"
+
+    "- are_you_safe: 'yes' ONLY if the user explicitly states they are safe or out of danger; "
+    "'no' ONLY if the user explicitly states they are not safe or are in danger; otherwise null\n"
+
+    "- is_gunman_active: 'yes' ONLY if the user explicitly states the shooter is currently active, present, still shooting, "
+    "or still a threat; 'no' ONLY if the user explicitly states the shooter has left, been stopped, arrested, or is no longer present; "
+    "otherwise null\n"
+
+    "- description_of_weapon: a short string ONLY if the user explicitly names or describes a weapon (e.g., gun, rifle, handgun); "
+    "otherwise null\n"
+
+    "Rules:\n"
+    "- Do NOT guess or infer.\n"
+    "- Do NOT infer is_gunman_active from are_you_safe.\n"
+    "- Only update fields explicitly answered in the current message.\n"
+    "- If the user responds with only 'yes' or 'no', update ONLY the field that was directly asked.\n"
+    "- Fields not explicitly mentioned MUST remain null.\n"
+    "- Do NOT add explanations, comments, or extra keys.\n"
+    "- Return ONLY valid JSON.\n"
+    "- Use lowercase yes/no for boolean fields.\n"
+
+    "Return ONLY valid JSON in this format:\n"
+    '{"are_you_safe": null, "is_gunman_active": null, "description_of_weapon": null}\n'
+)
+
 
