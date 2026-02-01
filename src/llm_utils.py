@@ -83,42 +83,10 @@ def text_to_speech(text, out_dir):
         f.write(text)
 
 
-
 def detect_yes_no(text):
+    if isinstance(text, bool):
+        return True
+    if not isinstance(text, str):
+        return False
     text = text.lower().strip()
-
-    yes_patterns = [
-        r"\bYes\b",
-        r"\bYeah\b",
-        r"\bYep\b",
-        r"\bYup\b",
-        r"\bCorrect\b",
-        r"\bTrue\b"
-    ]
-
-    no_patterns = [
-        r"\bNo\b",
-        r"\bNope\b",
-        r"\bNah\b",
-        r"\bNegative\b",
-        r"\bFalse\b"
-    ]
-
-    yes_found = any(re.search(p, text) for p in yes_patterns)
-    no_found = any(re.search(p, text) for p in no_patterns)
-
-    # If both appear, it's ambiguous
-    if yes_found and no_found:
-        print("[detect_yes_no] : both")
-        return None
-
-    if yes_found:
-        print("[detect_yes_no] : found yes")
-        return True
-
-    if no_found:
-        print("[detect_yes_no] : found no")
-        return True
-
-    print("[detect_yes_no] : return false")
-    return False
+    return text in ("yes", "no")

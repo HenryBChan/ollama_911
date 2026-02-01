@@ -115,11 +115,8 @@ def operator_main():
     })
 
     print("📋 Final Call Summary")
-    print(final_state)
-    
-
-    # conversation_state = node__initial_triage.conversation_state
-    # node__initial_triage.initial_triage_conversation(conversation_state, wav_path, model, audio_path, out_dir)
+    for key, value in final_state.items():
+        print(f"{key}: {value}")
 
 if __name__ == "__main__":
     operator_main()

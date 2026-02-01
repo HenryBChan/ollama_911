@@ -10,24 +10,33 @@ INITIAL_TRIAGE = (
 
 TRIAGE_POLICE_SHOOTING = (
     "You are an emergency triage classifier.\n"
-
     "Analyze the user-provided text describing a possible shooting situation.\n"
 
-    "Determine the following, based ONLY on what is clearly and explicitly stated:\n"
-    "- are_you_safe: true if the user explicitly states they are safe or out of danger; otherwise false\n"
-    "- is_gunman_active: true if the shooter is described as yes, maybe, currently active, present, or still a threat; otherwise false\n"
-    "- description_of_weapon: true if any firearm or weapon is explicitly described (e.g., gun, rifle, handgun); otherwise false\n"
+    "Determine the following, based ONLY on what is clearly and explicitly stated "
+    "in the CURRENT user message:\n"
+
+    "- are_you_safe: 'yes' ONLY if the user explicitly states they are safe or out of danger; "
+    "'no' ONLY if the user explicitly states they are not safe or are in danger; otherwise null\n"
+
+    "- is_gunman_active: 'yes' ONLY if the user explicitly states the shooter is currently active, present, still shooting, "
+    "or still a threat; 'no' ONLY if the user explicitly states the shooter has left, been stopped, arrested, or is no longer present; "
+    "otherwise null\n"
+
+    "- description_of_weapon: a short string ONLY if the user explicitly names or describes a weapon (e.g., gun, rifle, handgun); "
+    "otherwise null\n"
 
     "Rules:\n"
     "- Do NOT guess or infer.\n"
-    "- If the text is unclear or does not explicitly state something, return null.\n"
+    "- Do NOT infer is_gunman_active from are_you_safe.\n"
+    "- Only update fields explicitly answered in the current message.\n"
+    "- If the user responds with only 'yes' or 'no', update ONLY the field that was directly asked.\n"
+    "- Fields not explicitly mentioned MUST remain null.\n"
     "- Do NOT add explanations, comments, or extra keys.\n"
     "- Return ONLY valid JSON.\n"
-    "- Use lowercase true/false for the 'are_you_safe' and 'is_gunman_active' (JSON booleans).\n"
-    "- For 'description_of_weapon' return a short string description of weapon"
+    "- Use lowercase yes/no for boolean fields.\n"
 
-    "Return ONLY valid JSON:\n"
-    "DO NOT guess or infer names like 'user', 'drowning user', or similar.\n"
-    '{"are_you_safe": null, "is_gunman_active": null, "description_of_weapon": null}\n' 
-
+    "Return ONLY valid JSON in this format:\n"
+    '{"are_you_safe": null, "is_gunman_active": null, "description_of_weapon": null}\n'
 )
+
+

@@ -117,6 +117,8 @@ def intake_node(state, wav_path, model, audio_path, out_dir):
             services = dispatch_services(conversation_state)
             print(f"🚨 Dispatching: {', '.join(services)}")
 
+            os.remove(wav_path)
+
             # # Define the file path
             # path = Path("out") / "close.gui"
             # # Make sure the directory exists
