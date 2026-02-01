@@ -84,8 +84,9 @@ def police_node__shooting(state, wav_path, model, audio_path, out_dir):
                         state_shooting[key] = new_value
 
                 elif key == "description_of_weapon":
-                    if state_shooting[key] is None and isinstance(new_value, str):
-                        state_shooting[key] = new_value
+                    if (state_shooting[key] is None and isinstance(new_value, str)) or is_vague_gun_description(state_shooting[key]):
+                        if new_value and not is_vague_gun_description(new_value):
+                            state_shooting[key] = new_value
 
             prompt = next_question(state_shooting)
             llm_utils.text_to_speech(prompt, out_dir)
