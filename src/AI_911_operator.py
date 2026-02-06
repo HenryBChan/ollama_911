@@ -35,7 +35,7 @@ def route_after_intake(state):
         return "ems"
     else:
         # Fallback safety
-        return "police"
+        return "ems"
     
 # -------------------------
 # State
@@ -49,13 +49,23 @@ class State(TypedDict):
     location: Optional[str]
     emergency_type: Optional[str]
 
-    # Branch-specific
-    fire_details: Optional[str]
+    # Branch-specifics
+    fire_details__are_you_safe: Optional[str]
+    fire_details__is_anyone_in_immediate_danger: Optional[str]
+    fire_details__are_you_or_anyone_else_injured: Optional[str]
     police_details__shooting__are_you_safe: Optional[str]
     police_details__shooting__is_gunman_active: Optional[str]
     police_details__shooting__description_of_weapon: Optional[str]
     ems_details: Optional[str]
     
+fire_with_deps = partial(
+    fire_node,
+    wav_path=wav_path,
+    model=model,
+    audio_path=audio_path,
+    out_dir=out_dir,
+)
+
 intake_with_deps = partial(
     intake_node,
     wav_path=wav_path,
@@ -78,7 +88,7 @@ def build_graph():
     builder = StateGraph(State)
 
     builder.add_node("intake_node", intake_with_deps)
-    builder.add_node("fire_node", fire_node)
+    builder.add_node("fire_node", fire_with_deps)
     builder.add_node("police_node__shooting", police_node__shooting_with_deps)
     builder.add_node("ems_node", ems_node)
 
@@ -109,6 +119,9 @@ def operator_main():
         "name": None,
         "location": None,
         "emergency_type": None,
+        "fire_details__are_you_safe": None,
+        "fire_details__is_anyone_in_immediate_danger": None,
+        "fire_details__are_you_or_anyone_else_injured": None,
         "police_details__shooting__are_you_safe": None,
         "police_details__shooting__is_gunman_active": None,
         "police_details__shooting__description_of_weapon": None,
@@ -116,7 +129,8 @@ def operator_main():
 
     print("📋 Final Call Summary")
     for key, value in final_state.items():
-        print(f"{key}: {value}")
+        if value:
+            print(f"{key}: {value}")
 
 if __name__ == "__main__":
     operator_main()

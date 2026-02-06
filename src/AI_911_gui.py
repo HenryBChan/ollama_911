@@ -161,14 +161,14 @@ def gui_main():
         
         # Backend processing check
         if backend_processing:
-            if time.time() - processing_start_time > 2:
+            if time.time() - processing_start_time > 10:
                 backend_processing = False
         
         # Draw button
         screen.blit(button_image, button_rect.topleft)
         
         # Draw status text
-        status_text = "No Speak" if backend_processing else "Speak Now"
+        status_text = "No Speak" if backend_processing or talking else "Speak Now"
         status_color = RED if backend_processing else GREEN
         text_surface = font.render(status_text, True, status_color)
         screen.blit(text_surface, (160, 200))

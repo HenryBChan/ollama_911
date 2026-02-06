@@ -83,10 +83,19 @@ def text_to_speech(text, out_dir):
         f.write(text)
 
 
-def detect_yes_no(text):
-    if isinstance(text, bool):
-        return True
-    if not isinstance(text, str):
-        return False
-    text = text.lower().strip()
-    return text in ("yes", "no")
+# def detect_yes_no(text):
+#     if isinstance(text, bool):
+#         return True
+#     if not isinstance(text, str):
+#         return False
+#     text = text.lower().strip()
+#     return text in ("yes", "no")
+
+def normalize_yes_no(value):
+    if isinstance(value, bool):
+        return "yes" if value else "no"
+    if isinstance(value, str):
+        v = value.lower().strip()
+        if v in ("yes", "no"):
+            return v
+    return None

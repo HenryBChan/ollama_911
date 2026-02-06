@@ -28,14 +28,7 @@ def is_vague_gun_description(des):
     ]
     return any(term in des.lower() for term in vague_terms)
 
-def normalize_yes_no(value):
-    if isinstance(value, bool):
-        return "yes" if value else "no"
-    if isinstance(value, str):
-        v = value.lower().strip()
-        if v in ("yes", "no"):
-            return v
-    return None
+
 
 
 # -------------------------
@@ -75,7 +68,7 @@ def police_node__shooting(state, wav_path, model, audio_path, out_dir):
                 raw_value = extracted.get(key)
 
                 if key in ("are_you_safe", "is_gunman_active"):
-                    new_value = normalize_yes_no(raw_value)
+                    new_value = llm_utils.normalize_yes_no(raw_value)
                 else:
                     new_value = raw_value
 
