@@ -83,14 +83,6 @@ def text_to_speech(text, out_dir):
         f.write(text)
 
 
-# def detect_yes_no(text):
-#     if isinstance(text, bool):
-#         return True
-#     if not isinstance(text, str):
-#         return False
-#     text = text.lower().strip()
-#     return text in ("yes", "no")
-
 def normalize_yes_no(value):
     if isinstance(value, bool):
         return "yes" if value else "no"
@@ -99,3 +91,14 @@ def normalize_yes_no(value):
         if v in ("yes", "no"):
             return v
     return None
+
+
+def is_vague_description(des):
+    if not des:
+        return True
+    vague_terms = [
+        "not provided", "none", "null", "gun",
+        "not sure", "i don't know", 
+        "don't know", "unknown"
+    ]
+    return any(term in des.lower() for term in vague_terms)

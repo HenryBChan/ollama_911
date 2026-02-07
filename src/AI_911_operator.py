@@ -81,6 +81,15 @@ police_node__shooting_with_deps = partial(
     audio_path=audio_path,
     out_dir=out_dir,
 )
+
+ems_with_deps = partial(
+    ems_node,
+    wav_path=wav_path,
+    model=model,
+    audio_path=audio_path,
+    out_dir=out_dir,
+)
+
 # -------------------------
 # Build Graph
 # -------------------------
@@ -90,7 +99,7 @@ def build_graph():
     builder.add_node("intake_node", intake_with_deps)
     builder.add_node("fire_node", fire_with_deps)
     builder.add_node("police_node__shooting", police_node__shooting_with_deps)
-    builder.add_node("ems_node", ems_node)
+    builder.add_node("ems_node", ems_with_deps)
 
     builder.set_entry_point("intake_node")
 

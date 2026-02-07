@@ -18,15 +18,15 @@ def next_question(state):
 
         return f"are_you_safe : {are_you_safe}, is_gunman_active {is_gunman_active}, description_of_weapon {description_of_weapon}"
     
-def is_vague_gun_description(des):
-    if not des:
-        return True
-    vague_terms = [
-        "not provided", "none", "null", "gun",
-        "not sure", "i don't know", 
-        "don't know", "unknown"
-    ]
-    return any(term in des.lower() for term in vague_terms)
+# def is_vague_gun_description(des):
+#     if not des:
+#         return True
+#     vague_terms = [
+#         "not provided", "none", "null", "gun",
+#         "not sure", "i don't know", 
+#         "don't know", "unknown"
+#     ]
+#     return any(term in des.lower() for term in vague_terms)
 
 
 
@@ -77,8 +77,8 @@ def police_node__shooting(state, wav_path, model, audio_path, out_dir):
                         state_shooting[key] = new_value
 
                 elif key == "description_of_weapon":
-                    if (state_shooting[key] is None and isinstance(new_value, str)) or is_vague_gun_description(state_shooting[key]):
-                        if new_value and not is_vague_gun_description(new_value):
+                    if (state_shooting[key] is None and isinstance(new_value, str)) or llm_utils.is_vague_description(state_shooting[key]):
+                        if new_value and not llm_utils.is_vague_description(new_value):
                             state_shooting[key] = new_value
 
             prompt = next_question(state_shooting)

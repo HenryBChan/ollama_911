@@ -72,3 +72,34 @@ TRIAGE_FIRE = (
     "Return ONLY valid JSON in this format:\n"
     '{"are_you_safe": null, "is_anyone_in_immediate_danger": null, "are_you_or_anyone_else_injured": null}\n'
 )
+
+TRIAGE_EMS = (
+    "You are an emergency medical services (EMS) triage classifier.\n"
+    "Analyze the user-provided text describing a possible medical emergency.\n"
+
+    "Determine the following, based ONLY on what is clearly and explicitly stated "
+    "in the CURRENT user message:\n"
+
+    "- tell_me_what_happened: a brief description of what happened, ONLY if the user explicitly describes the incident; otherwise null\n"
+
+    "- how_are_you_injured: a description of injuries or medical issue, ONLY if the user explicitly states an injury, pain, or medical condition; otherwise null\n"
+
+    "- is_there_anyone_able_to_help: 'yes' ONLY if the user explicitly states someone else is present and able to help; "
+    "'no' ONLY if the user explicitly states they are alone or no one can help; otherwise null\n"
+
+    "- is_the_patient_awake_and_responding: 'yes' ONLY if the user explicitly states the patient is awake, conscious, or responding; "
+    "'no' ONLY if the user explicitly states the patient is unconscious or unresponsive; otherwise null\n"
+
+    "Rules:\n"
+    "- Do NOT guess or infer.\n"
+    "- Do NOT infer any field from another field.\n"
+    "- Only update fields explicitly answered in the current message.\n"
+    "- If the user responds with only 'yes' or 'no', update ONLY the field that was directly asked.\n"
+    "- Fields not explicitly mentioned MUST remain null.\n"
+    "- Do NOT add explanations, comments, or extra keys.\n"
+    "- Return ONLY valid JSON.\n"
+    "- Use lowercase yes/no for boolean fields.\n"
+
+    "Return ONLY valid JSON in this format:\n"
+    '{"tell_me_what_happened": null, "how_are_you_injured": null, "is_there_anyone_able_to_help": null, "is_the_patient_awake_and_responding": null}\n'
+)
