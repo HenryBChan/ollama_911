@@ -56,8 +56,11 @@ class State(TypedDict):
     police_details__shooting__are_you_safe: Optional[str]
     police_details__shooting__is_gunman_active: Optional[str]
     police_details__shooting__description_of_weapon: Optional[str]
-    ems_details: Optional[str]
-    
+    ems_details__tell_me_what_happened: Optional[str]
+    ems_details__whats_the_injury: Optional[str]
+    ems_details__is_there_anyone_able_to_help: Optional[str]
+    ems_details__is_there_any_trouble_breathing: Optional[str]
+
 fire_with_deps = partial(
     fire_node,
     wav_path=wav_path,
