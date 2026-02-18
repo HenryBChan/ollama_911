@@ -3,6 +3,7 @@ import os
 import time
 from functools import partial
 from src.nodes.police_node__shooting import police_node__shooting
+from src.nodes.police_node__robbery import police_node__robbery
 from src.nodes.intake_node import intake_node
 from src.nodes.fire_node import fire_node
 from src.nodes.EMS_Node import ems_node
@@ -29,6 +30,8 @@ def route_after_intake(state):
         return "fire"
     elif etype == "shooting":
         return "police__shooting"
+    elif etype == "robbery":
+        return "police__robbery"
     elif etype == "police":
         return "police"
     elif etype == "ems":
@@ -56,6 +59,12 @@ class State(TypedDict):
     police_details__shooting__are_you_safe: Optional[str]
     police_details__shooting__is_gunman_active: Optional[str]
     police_details__shooting__description_of_weapon: Optional[str]
+    police_details__robbery__are_you_safe: Optional[str]
+    police_details__robbery__is_gunman_active: Optional[str]
+    police_details__robbery__description_of_weapon: Optional[str]
+    police_details__robbery__is_anyone_injured: Optional[str]
+    police_details__robbery__description_of_suspect: Optional[str] 
+    police_details__robbery__suspect_whereabouts: Optional[str] 
     ems_details__tell_me_what_happened: Optional[str]
     ems_details__whats_the_injury: Optional[str]
     ems_details__is_there_anyone_able_to_help: Optional[str]
@@ -85,6 +94,14 @@ police_node__shooting_with_deps = partial(
     out_dir=out_dir,
 )
 
+police_node__robbery_with_deps = partial(
+    police_node__robbery,
+    wav_path=wav_path,
+    model=model,
+    audio_path=audio_path,
+    out_dir=out_dir,
+)
+
 ems_with_deps = partial(
     ems_node,
     wav_path=wav_path,
@@ -102,6 +119,7 @@ def build_graph():
     builder.add_node("intake_node", intake_with_deps)
     builder.add_node("fire_node", fire_with_deps)
     builder.add_node("police_node__shooting", police_node__shooting_with_deps)
+    builder.add_node("police_node__robbery", police_node__robbery_with_deps)
     builder.add_node("ems_node", ems_with_deps)
 
     builder.set_entry_point("intake_node")
@@ -112,12 +130,14 @@ def build_graph():
         {
             "fire": "fire_node",
             "police__shooting": "police_node__shooting",
+            "police__robbery": "police_node__robbery",
             "ems": "ems_node",
         },
     )
 
     builder.add_edge("fire_node", END)
     builder.add_edge("police_node__shooting", END)
+    builder.add_edge("police_node__robbery", END)
     builder.add_edge("ems_node", END)
     return builder.compile()
 
@@ -137,6 +157,16 @@ def operator_main():
         "police_details__shooting__are_you_safe": None,
         "police_details__shooting__is_gunman_active": None,
         "police_details__shooting__description_of_weapon": None,
+        "police_details__robbery__are_you_safe": None,
+        "police_details__robbery__is_gunman_active": None,
+        "police_details__robbery__description_of_weapon": None,
+        "police_details__robbery__is_anyone_injured": None,
+        "police_details__robbery__description_of_suspect": None,
+        "police_details__robbery__suspect_whereabouts": None,
+        "ems_details__tell_me_what_happened": None,
+        "ems_details__whats_the_injury": None,
+        "ems_details__is_there_anyone_able_to_help": None,
+        "ems_details__is_there_any_trouble_breathing": None
     })
 
     print("📋 Final Call Summary")

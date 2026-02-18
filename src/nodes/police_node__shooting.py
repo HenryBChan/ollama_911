@@ -18,18 +18,6 @@ def next_question(state):
 
         return f"are_you_safe : {are_you_safe}, is_gunman_active {is_gunman_active}, description_of_weapon {description_of_weapon}"
     
-# def is_vague_gun_description(des):
-#     if not des:
-#         return True
-#     vague_terms = [
-#         "not provided", "none", "null", "gun",
-#         "not sure", "i don't know", 
-#         "don't know", "unknown"
-#     ]
-#     return any(term in des.lower() for term in vague_terms)
-
-
-
 
 # -------------------------
 # Police Node
