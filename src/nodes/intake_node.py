@@ -157,6 +157,9 @@ def dispatch_services(state):
     if any(term in emergency for term in ["robbery"]):
         services.add("Police__robbery")
 
+    if any(term in emergency for term in ["car accident", "traffic accident"]):
+        services.add("Police__car_accident")
+
     if any(term in emergency for term in ["assault", "theft", "violence", "gun", "knife", "threat"]):
         services.add("Police")
 

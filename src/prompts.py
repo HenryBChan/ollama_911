@@ -147,14 +147,49 @@ TRIAGE_ROBBERY = (
     "- Do NOT add explanations, comments, or extra keys.\n"
     "- Return ONLY valid JSON.\n"
     "- Use lowercase yes/no for yes/no fields.\n"
-    "- are_you_safe: 'yes' ONLY if the current question is 'are_you_safe'"
-    "and the user explicitly answers yes; 'no' ONLY if the user explicitly answers no; otherwise null"
     "- You MUST update ONLY the field that exactly matches {current_question}."
     "- ALL other fields MUST be null."
     "- If any other field is populated, the response is invalid."
 
-
-
     "Return ONLY valid JSON in this format:\n"
     '{"are_you_safe": null, "is_robbery_ongoing": null, "is_anyone_injured": null, "description_of_weapon": null, "description_of_suspect": null, "suspect_whereabouts": null}\n'
+)
+
+
+
+TRIAGE_CAR_ACCIDENT = (
+    "You are a 911 car accident triage classifier.\n"
+    "Analyze the user-provided text describing a possible car accident situation.\n"
+
+    "The CURRENT question being asked to the user is:\n"
+    "{current_question}\n\n"
+
+    "Determine the following, based ONLY on what is clearly and explicitly stated "
+    "in the CURRENT user message:\n"
+
+    "- is_anyone_injured: 'yes' ONLY if the current question is 'Is anyone injured?' "
+    "and the user explicitly confirms they and others involved are injured; 'no' ONLY if the user explicitly "
+    "confirms they or others involved are not injured; otherwise null\n"
+
+    "- tell_me_what_happened: a brief description of what happened, ONLY if the current question is 'Tell me what happened?' "
+    "and the user provides a descriptive answer; otherwise null\n"
+
+    "- have_you_exchanged_information: 'yes' ONLY if the current question is 'Have you exchanged information?' "
+    "and the user explicitly confirms they have exchanged information; "
+    "'no' ONLY if the user explicitly confirms they have not exchanged information; otherwise null\n"
+
+    "Rules:\n"
+    "- Do NOT guess or infer.\n"
+    "- Do NOT update fields other than the one associated with the current question.\n"
+    "- If the user responds with only 'yes' or 'no' to a non-yes/no question, return all fields as null.\n"
+    "- Fields not explicitly mentioned MUST remain null.\n"
+    "- Do NOT add explanations, comments, or extra keys.\n"
+    "- Return ONLY valid JSON.\n"
+    "- Use lowercase yes/no for yes/no fields.\n"
+    "- You MUST update ONLY the field that exactly matches {current_question}."
+    "- ALL other fields MUST be null."
+    "- If any other field is populated, the response is invalid."
+
+    "Return ONLY valid JSON in this format:\n"
+    '{"is_anyone_injured": null, "tell_me_what_happened": null, "have_you_exchanged_information": null}\n'
 )
