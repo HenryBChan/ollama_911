@@ -7,19 +7,20 @@ import random
 SCREEN_W, SCREEN_H = 1200, 760
 FPS = 60
 
-NUM_OPERATORS = 20
+NUM_OPERATORS = 22
 MIN_QUEUE_TIME = 3.0  # seconds (simulation time)
 
-CALL_LENGTH_START = 7 * 60
-CALL_INTERVAL_START = 45
-STEP = 15
+CALL_LENGTH_START = 90
+CALL_PER_HOUR_START = 240
+CALL_INTERVAL_START = 3600/CALL_PER_HOUR_START 
+STEP = 1
 
 FONT_SIZE = 22
 
 QUEUE_PERSON_SIZE = 14
 QUEUE_MAX_PER_ROW = 60
 
-SIM_RATE_START = 20
+SIM_RATE_START = 25
 SIM_RATE_MIN = 1
 
 RAINBOW_COLORS = [
@@ -130,7 +131,7 @@ while running:
                 call_interval = max(STEP, call_interval - STEP)
 
             elif event.key == pygame.K_w:
-                sim_rate += 1
+                sim_rate += 25
 
             elif event.key == pygame.K_s:
                 sim_rate = max(SIM_RATE_MIN, sim_rate - 1)

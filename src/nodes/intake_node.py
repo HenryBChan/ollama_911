@@ -22,6 +22,7 @@ def is_vague_location(loc):
     if not loc:
         return True
     vague_terms = [
+        "on the street",
         "Not Provided", "None",
         "somewhere", "around", "maybe", "not sure", "i don't know", 
         "don't know", "unknown", "lost", "nearby", "far away", "an island"

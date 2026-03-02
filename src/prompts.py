@@ -1,10 +1,32 @@
  
 INITIAL_TRIAGE = ( 
-    "Extract name, location, and emergency.\n"
-    "Emergency should be a short description of what help is needed (e.g., 'broken leg', 'house fire', 'car accident'.\n"
-    "Only include values that were clearly and explicitly stated by the user.\n"
+    "Extract name, location, and emergency from the user-provided text.\n"
+
+    "Determine the following, based ONLY on what is clearly and explicitly stated "
+    "in the CURRENT user message:\n"
+
+    "- emergency: Emergency should be a short description of what help is needed (e.g., 'broken leg', 'house fire', 'car accident'.\n"
+    
+    "- location: Must be either a clear address with a street number and a street name, or a clear landmark;  we do not accept location " \
+    "descriptions that are vague like 'on the street' or 'somewhere' or 'Canada' or 'earth'; otherwise null\n"
+
+    "- name: Must be a proper English name, that is either just a first name or a first and last name; it cannot be a fictional character;"
+    "cannot be a inanimate object such as 'tree' ; the first letter cannot be lower case; otherwise null\n"
+
+    "Rules:\n"
+    "- Only include values that were clearly and explicitly stated by the user.\n"
+    "- DO NOT guess or infer names like 'user', 'drowning user', or similar.\n"
+    "- Only update fields explicitly answered in the current message.\n"
+    "- If the user responds with only 'yes' or 'no', update ONLY the field that was directly asked.\n"
+    "- Fields not explicitly mentioned MUST remain null.\n"
+    "- When a field has no value, return JSON null (without quotes).\n"
+    '- Do NOT return the string "null".\n'
+    "- null must be a literal JSON null value.\n"
+    "- Do NOT add explanations, comments, or extra keys.\n"
+    "- Return ONLY valid JSON.\n"
+    "- Use lowercase yes/no for boolean fields.\n"
+
     "Return ONLY valid JSON:\n"
-    "DO NOT guess or infer names like 'user', 'drowning user', or similar.\n"
     '{"name": null, "location": null, "emergency": null}\n' 
 )
 
@@ -31,6 +53,9 @@ TRIAGE_POLICE_SHOOTING = (
     "- Only update fields explicitly answered in the current message.\n"
     "- If the user responds with only 'yes' or 'no', update ONLY the field that was directly asked.\n"
     "- Fields not explicitly mentioned MUST remain null.\n"
+    "- When a field has no value, return JSON null (without quotes).\n"
+    '- Do NOT return the string "null".\n'
+    "- null must be a literal JSON null value.\n"
     "- Do NOT add explanations, comments, or extra keys.\n"
     "- Return ONLY valid JSON.\n"
     "- Use lowercase yes/no for boolean fields.\n"
@@ -65,6 +90,9 @@ TRIAGE_FIRE = (
     "- Only update fields explicitly answered in the current message.\n"
     "- If the user responds with only 'yes' or 'no', update ONLY the field that was directly asked.\n"
     "- Fields not explicitly mentioned MUST remain null.\n"
+    "- When a field has no value, return JSON null (without quotes).\n"
+    '- Do NOT return the string "null".\n'
+    "- null must be a literal JSON null value.\n"
     "- Do NOT add explanations, comments, or extra keys.\n"
     "- Return ONLY valid JSON.\n"
     "- Use lowercase yes/no for boolean fields.\n"
@@ -100,6 +128,9 @@ TRIAGE_EMS = (
     "- Do NOT update fields other than the one associated with the current question.\n"
     "- If the user responds with only 'yes' or 'no' to a non-yes/no question, return all fields as null.\n"
     "- Fields not explicitly mentioned MUST remain null.\n"
+    "- When a field has no value, return JSON null (without quotes).\n"
+    '- Do NOT return the string "null".\n'
+    "- null must be a literal JSON null value.\n"
     "- Do NOT add explanations, comments, or extra keys.\n"
     "- Return ONLY valid JSON.\n"
     "- Use lowercase yes/no for boolean fields.\n"
@@ -149,6 +180,9 @@ TRIAGE_ROBBERY = (
     "- Use lowercase yes/no for yes/no fields.\n"
     "- You MUST update ONLY the field that exactly matches {current_question}."
     "- ALL other fields MUST be null."
+    "- When a field has no value, return JSON null (without quotes).\n"
+    '- Do NOT return the string "null".\n'
+    "- null must be a literal JSON null value.\n"
     "- If any other field is populated, the response is invalid."
 
     "Return ONLY valid JSON in this format:\n"
@@ -188,6 +222,9 @@ TRIAGE_CAR_ACCIDENT = (
     "- Use lowercase yes/no for yes/no fields.\n"
     "- You MUST update ONLY the field that exactly matches {current_question}."
     "- ALL other fields MUST be null."
+    "- When a field has no value, return JSON null (without quotes).\n"
+    '- Do NOT return the string "null".\n'
+    "- null must be a literal JSON null value.\n"
     "- If any other field is populated, the response is invalid."
 
     "Return ONLY valid JSON in this format:\n"
