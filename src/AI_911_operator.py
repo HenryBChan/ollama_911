@@ -27,11 +27,11 @@ audio_path = "out/recorded_audio.wav"
 def route_after_intake(state):
     etype = (state.get("emergency_type") or "").lower()
 
-    if etype == "fire":
+    if "fire" in etype:
         return "fire"
     elif etype == "shooting" or etype == "explosion" or etype == "gun shots":
         return "police__shooting"
-    elif etype == "robbery":
+    elif "robbery" in etype:
         return "police__robbery"
     elif etype == "car accident" or etype == "traffic accident":
         return "police__car_accident"
