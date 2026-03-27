@@ -2,6 +2,7 @@ import subprocess
 import json
 import re
 import gc
+import ollama
 from typing import Optional
 
 def clean_llm_output(text: str) -> str:
@@ -27,14 +28,27 @@ def query_llm(user_message, current_state, prompt_body):
     )
 
     try:
-        result = subprocess.run(
-            ["ollama", "run", "gemma2:2b", prompt],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="ignore",
-            timeout=120
+        response = ollama.generate(
+            model='gemma2:2b',  #gemma2:2b-instruct-q2_K, qwen2.5:0.5b
+            #model='gemma2:2b-instruct-q2_K',
+            prompt=prompt,
+            options={
+                #'num_gpu': 99,# Forces Ollama to offload as many layers as possible to the iGPU
+                #'main_gpu': 0,# Ensures it targets your primary integrated graphics
+                'num_ctx': 2048,  # Reduces RAM usage by limiting context memory
+                'num_keep': 0,
+                'temperature': 0  # Makes output more predictable for JSON
+            },
+            keep_alive=0 
         )
+        # result = subprocess.run(
+        #     ["ollama", "run", "gemma2:2b", prompt],
+        #     capture_output=True,
+        #     text=True,
+        #     encoding="utf-8",
+        #     errors="ignore",
+        #     timeout=120
+        # )
 
         # "model": "mistral",       # requires 4.5 Gb mem
         # "model": "phi3:3.8b",
@@ -42,18 +56,21 @@ def query_llm(user_message, current_state, prompt_body):
         # "model": "phi3:mini",       # requires more mem
         # "model": "gemma2:2b",
 
-        raw_output = clean_llm_output(result.stdout)
+        #rw_output = clean_llm_output(result.stdout)
+        raw_output = clean_llm_output(response['response'])
         print(f"raw_output {raw_output}")
-    except subprocess.TimeoutExpired:
-        print("⏱ Ollama subprocess timed out")
-        return current_state.copy()
+    # except subprocess.TimeoutExpired:
+    #     print("⏱ Ollama subprocess timed out")
+    #     return current_state.copy()
 
+    # except Exception as e:
+    #     print("❌ Ollama request failed:", e)
+    #     return current_state.copy()
     except Exception as e:
         print("❌ Ollama request failed:", e)
         return current_state.copy()
-
     # Immediately drop references we no longer need
-    del result
+    del response
     # del data
     gc.collect()
 
