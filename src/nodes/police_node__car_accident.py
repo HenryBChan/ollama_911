@@ -70,20 +70,15 @@ def police_node__car_accident(state, wav_path, model, audio_path, out_dir):
                         if new_value and not llm_utils.is_vague_description(new_value):
                             state_car_accident[key] = new_value
 
-            prompt = next_question(state_car_accident)
-            llm_utils.text_to_speech(prompt, out_dir)
+            if not all(state_car_accident.values()):
+                prompt = next_question(state_car_accident)
+                llm_utils.text_to_speech(prompt, out_dir)
 
         if all(state_car_accident.values()):
             print(f"🚨 Car accident parameters all extracted!")
             # services = dispatch_services(state_shooting)
             # print(f"🚨 Dispatching: {', '.join(services)}")
 
-            # Define the file path
-            path = Path("out") / "close.gui"
-            # Make sure the directory exists
-            path.parent.mkdir(parents=True, exist_ok=True)
-            # Create the blank file (or update its timestamp if it already exists)
-            path.touch(exist_ok=True)
             break
 
         prev_size = current_size

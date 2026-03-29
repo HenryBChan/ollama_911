@@ -8,19 +8,21 @@ SCREEN_W, SCREEN_H = 1200, 760
 FPS = 60
 
 NUM_OPERATORS = 22
-MIN_QUEUE_TIME = 3.0  # seconds (simulation time)
+CALL_LENGTH_START = 80
 
-CALL_LENGTH_START = 90
-CALL_PER_HOUR_START = 240
-CALL_INTERVAL_START = 3600/CALL_PER_HOUR_START 
+CALL_PER_HOUR_START = 1200
+call_per_hour = CALL_PER_HOUR_START
+call_interval = 3600 / call_per_hour
+
 STEP = 1
+STEP_CALLS = 10
 
 FONT_SIZE = 22
 
 QUEUE_PERSON_SIZE = 14
 QUEUE_MAX_PER_ROW = 60
 
-SIM_RATE_START = 25
+SIM_RATE_START = 125
 SIM_RATE_MIN = 1
 
 RAINBOW_COLORS = [
@@ -70,7 +72,6 @@ operators = [Operator() for _ in range(NUM_OPERATORS)]
 call_queue = []
 
 avg_call_length = CALL_LENGTH_START
-call_interval = CALL_INTERVAL_START
 
 time_since_last_call = 0
 sim_time = 0
@@ -115,6 +116,7 @@ while running:
             running = False
 
         elif event.type == pygame.KEYDOWN:
+
             if event.key == pygame.K_ESCAPE:
                 running = False
 
@@ -125,49 +127,59 @@ while running:
                 avg_call_length = max(STEP, avg_call_length - STEP)
 
             elif event.key == pygame.K_RIGHT:
-                call_interval += STEP
+                call_per_hour += STEP_CALLS
+                call_interval = 3600 / call_per_hour
 
             elif event.key == pygame.K_LEFT:
-                call_interval = max(STEP, call_interval - STEP)
+                call_per_hour = max(1, call_per_hour - STEP_CALLS)
+                call_interval = 3600 / call_per_hour
 
             elif event.key == pygame.K_w:
                 sim_rate += 25
 
             elif event.key == pygame.K_s:
-                sim_rate = max(SIM_RATE_MIN, sim_rate - 1)
+                sim_rate = max(SIM_RATE_MIN, sim_rate - 25)
 
         elif event.type == pygame.MOUSEBUTTONDOWN and not running_sim:
             if start_button.collidepoint(event.pos):
                 running_sim = True
                 sim_time = 0
                 time_since_last_call = 0
+                call_queue.clear()
+
+                for operator in operators:
+                    operator.busy = False
+                    operator.time_remaining = 0
 
     # -------------------------
     # Simulation Logic
     # -------------------------
     if running_sim:
+
         sim_time += sim_dt
         time_since_last_call += sim_dt
 
-        # Generate Calls
-        if time_since_last_call >= call_interval:
-            time_since_last_call = 0
+        # Generate calls
+        max_loops = 10
+        loops = 0
+
+        while time_since_last_call >= call_interval and loops < max_loops:
+            time_since_last_call -= call_interval
+            loops += 1
+
             call_queue.append({
                 "duration": random.uniform(avg_call_length * 0.8, avg_call_length * 1.2),
                 "enqueue_time": sim_time,
                 "color": random.choice(RAINBOW_COLORS)
             })
 
-        # Assign Calls (respect minimum queue time)
+        # Assign calls
         for operator in operators:
-            if not operator.busy:
-                for call in call_queue:
-                    if sim_time - call["enqueue_time"] >= MIN_QUEUE_TIME:
-                        operator.assign_call(call["duration"])
-                        call_queue.remove(call)
-                        break
+            if not operator.busy and call_queue:
+                call = call_queue.pop(0)
+                operator.assign_call(call["duration"])
 
-        # Update Operators
+        # Update operators
         for operator in operators:
             operator.update(sim_dt)
 
@@ -178,46 +190,37 @@ while running:
 
     draw_text("911 CALL CENTER SIMULATION", 20, 20)
     draw_text(f"Simulation Time: {format_time(sim_time)}", 20, 60)
-    draw_text(f"Simulation Rate: {sim_rate}x (W / S)", 20, 90)
+    draw_text(f"Simulation Rate: {sim_rate}x (W / S)", 20, 85)
 
-    draw_text(f"Avg Call Length: {format_time(avg_call_length)} (↑ / ↓)", 20, 130)
-    draw_text(f"Call Interval: {call_interval}s (← / →)", 20, 160)
-    draw_text(f"Calls Waiting: {len(call_queue)}", 20, 190)
+    draw_text(f"Avg Call Length: {format_time(avg_call_length)} (↑ / ↓)", 20, 110)
+    draw_text(f"Call Interval: {call_interval:.2f}s", 20, 135)
+    draw_text(f"Calls Per Hour: {call_per_hour:.0f} (← / →)", 20, 160)
 
-    draw_text(
-        f"Estimated Wait Time: {format_time(estimated_wait_time())}",
-        20, 220
-    )
+    draw_text(f"Calls Waiting: {len(call_queue)}", 20, 185)
+    draw_text(f"Estimated Wait Time: {format_time(estimated_wait_time())}", 20, 210)
 
-    # Start Button
     if not running_sim:
         pygame.draw.rect(screen, (50, 180, 50), start_button)
         draw_text("START", start_button.x + 45, start_button.y + 18)
 
-    # -------------------------
-    # Queue Visualization
-    # -------------------------
+    # Queue visualization
     base_x, base_y = 20, 270
     for i, call in enumerate(call_queue):
         row = i // QUEUE_MAX_PER_ROW
         col = i % QUEUE_MAX_PER_ROW
+
         x = base_x + col * (QUEUE_PERSON_SIZE + 2)
         y = base_y + row * (QUEUE_PERSON_SIZE + 6)
 
-        pygame.draw.rect(
-            screen,
-            call["color"],
-            (x, y, QUEUE_PERSON_SIZE, QUEUE_PERSON_SIZE)
-        )
+        pygame.draw.rect(screen, call["color"], (x, y, QUEUE_PERSON_SIZE, QUEUE_PERSON_SIZE))
 
-    draw_text("Incoming Call Queue (Colored Callers)", base_x, base_y - 25)
+    draw_text("Incoming Call Queue", base_x, base_y - 25)
 
-    # -------------------------
     # Operators
-    # -------------------------
     for i, operator in enumerate(operators):
         x = 20 + (i % 10) * 100
         y = 470 + (i // 10) * 100
+
         color = (200, 50, 50) if operator.busy else (50, 200, 50)
         pygame.draw.rect(screen, color, (x, y, 80, 45))
         draw_text(f"O{i+1}", x + 20, y + 12)

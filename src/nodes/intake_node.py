@@ -110,9 +110,10 @@ def intake_node(state, wav_path, model, audio_path, out_dir):
                 outgoing_message = "Can you briefly describe what the emergency is?"
                 llm_utils.text_to_speech(outgoing_message, out_dir)
                 continue
-            
-            prompt = next_question(conversation_state)
-            llm_utils.text_to_speech(prompt, out_dir)
+
+            if not all(conversation_state.values()):
+                prompt = next_question(conversation_state)
+                llm_utils.text_to_speech(prompt, out_dir)
 
         if all(conversation_state.values()):
             services = dispatch_services(conversation_state)
@@ -120,12 +121,6 @@ def intake_node(state, wav_path, model, audio_path, out_dir):
 
             os.remove(wav_path)
 
-            # # Define the file path
-            # path = Path("out") / "close.gui"
-            # # Make sure the directory exists
-            # path.parent.mkdir(parents=True, exist_ok=True)
-            # # Create the blank file (or update its timestamp if it already exists)
-            # path.touch(exist_ok=True)
             break
 
         prev_size = current_size

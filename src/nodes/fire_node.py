@@ -75,20 +75,15 @@ def fire_node(state, wav_path, model, audio_path, out_dir):
                 #         if new_value and not is_vague_gun_description(new_value):
                 #             state_fire[key] = new_value
 
-            prompt = next_question(state_fire)
-            llm_utils.text_to_speech(prompt, out_dir)
+            if not all(state_fire.values()):
+                prompt = next_question(state_fire)
+                llm_utils.text_to_speech(prompt, out_dir)
 
         if all(state_fire.values()):
             print(f"🚨 Fire parameters all extracted!")
             # services = dispatch_services(state_shooting)
             # print(f"🚨 Dispatching: {', '.join(services)}")
 
-            # Define the file path
-            path = Path("out") / "close.gui"
-            # Make sure the directory exists
-            path.parent.mkdir(parents=True, exist_ok=True)
-            # Create the blank file (or update its timestamp if it already exists)
-            path.touch(exist_ok=True)
             break
 
         prev_size = current_size

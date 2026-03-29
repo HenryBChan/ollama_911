@@ -18,10 +18,11 @@ INITIAL_TRIAGE = (
     "- DO NOT guess or infer names like 'user', 'drowning user', or similar.\n"
     "- Only update fields explicitly answered in the current message.\n"
     "- If the user responds with only 'yes' or 'no', update ONLY the field that was directly asked.\n"
-    "- Fields not explicitly mentioned MUST remain null.\n"
+    "- Fields not explicitly mentioned MUST remain null (without quotes).\n"
     "- When a field has no value, return JSON null (without quotes).\n"
-    '- Do NOT return the string "null".\n'
-    "- null must be a literal JSON null value.\n"
+    '- Do NOT return the string "null" for a field value.\n'
+    "- null values must be a literal JSON null value.\n"
+    '- "null" (with quotes) is an invalid field value.\n'
     "- Do NOT add explanations, comments, or extra keys.\n"
     "- Return ONLY valid JSON.\n"
     "- Use lowercase yes/no for boolean fields.\n"

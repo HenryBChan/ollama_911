@@ -12,6 +12,7 @@ from src import prompts as prompts
 from src import llm_utils as llm_utils
 from typing import TypedDict, Optional
 from langgraph.graph import StateGraph, END
+from pathlib import Path
 
 audio_path = "out/recorded_audio.wav"
 
@@ -189,11 +190,21 @@ def operator_main():
         "ems_details__is_there_any_trouble_breathing": None
     })
 
-
     print("📋 Final Call Summary")
     for key, value in final_state.items():
         if value:
             print(f"{key}: {value}")
+
+    llm_utils.text_to_speech("Information collected and relayed to human operator, please hold.", out_dir)
+
+    time.sleep(5)
+
+    # Define the file path
+    path = Path("out") / "close.gui"
+    # Make sure the directory exists
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # Create the blank file (or update its timestamp if it already exists)
+    path.touch(exist_ok=True)
 
 if __name__ == "__main__":
     operator_main()
